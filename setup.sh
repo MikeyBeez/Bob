@@ -1,51 +1,74 @@
 #!/bin/bash
+# Bob Setup with uv (fast Python package management)
 
-# Bob Setup Script - Using UV for Python Environment Management
-# Better Organized Brain v5.0
+echo "🚀 Bob Setup - Using uv for fast dependency management"
+echo
 
-set -e
-
-echo "🧠 Bob - Better Organized Brain Setup"
-echo "====================================="
-echo ""
-
-# Check if UV is installed
-echo "⚡ Checking UV installation..."
+# Check if uv is installed
 if ! command -v uv &> /dev/null; then
-    echo "❌ UV not found. Installing UV..."
+    echo "📦 Installing uv (fast Python package manager)..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
-    source ~/.bashrc || source ~/.zshrc || true
-else
-    echo "✅ UV version: $(uv --version)"
+    export PATH="$HOME/.cargo/bin:$PATH"
 fi
 
-# Get the directory where this script is located
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+echo "✅ uv found: $(uv --version)"
 
-echo "📦 Setting up Python environment with UV..."
+# Create virtual environment if it doesn't exist
+if [ ! -d ".venv" ]; then
+    echo "🐍 Creating virtual environment with uv..."
+    uv venv .venv
+fi
 
-# Create virtual environment with UV
-echo "   Creating virtual environment..."
-uv venv
+echo "📦 Installing Bob dependencies with uv (this is fast!)..."
+source .venv/bin/activate
+uv pip install -r requirements-minimal.txt
 
-# Install dependencies with UV
-echo "   Installing dependencies..."
-uv pip install -r requirements.txt
+# Check Ollama
+echo "🦙 Checking Ollama..."
+if command -v ollama &> /dev/null; then
+    echo "✅ Ollama found"
+    
+    # Check if llama3.2 is available
+    if ollama list | grep -q "llama3.2"; then
+        echo "✅ llama3.2 model available"
+    else
+        echo "📥 Downloading llama3.2 model..."
+        ollama pull llama3.2
+    fi
+else
+    echo "❌ Ollama not found! Install from: https://ollama.ai"
+    echo "Then run: ollama pull llama3.2"
+fi
 
-echo "✅ Bob environment setup complete!"
-echo ""
-echo "🚀 Usage:"
-echo "   # Activate environment manually:"
-echo "   source .venv/bin/activate"
-echo "   python -m bob"
-echo ""
-echo "   # Or run directly with UV:"
-echo "   uv run python -m bob"
-echo ""
-echo "🔧 Development commands:"
-echo "   uv pip install <package>     # Add new dependencies"
-echo "   uv pip list                  # Show installed packages"
-echo "   uv pip freeze > requirements.txt  # Update requirements"
-echo ""
-echo "🧠 Bob is ready to enhance your brain!"
+# Install Node.js dependencies
+if command -v node &> /dev/null && [ ! -d "node_modules" ]; then
+    echo "📦 Installing Node.js dependencies..."
+    npm install
+fi
+
+# Make scripts executable
+chmod +x ./bob ./chat ./repl bob_simple.py
+
+# Create config
+mkdir -p config data/temp data/cache logs
+if [ ! -f "config/config.json" ]; then
+    cat > config/config.json << EOF
+{
+  "thinking_model": "llama3.2", 
+  "ollama_host": "http://localhost:11434",
+  "temperature": 0.7,
+  "max_context_length": 4096
+}
+EOF
+    echo "✅ Created config.json"
+fi
+
+echo
+echo "🎉 Bob setup complete with uv!"
+echo
+echo "🚀 Start chatting:"
+echo "   ./bob                    # Smart launcher"
+echo "   python3 bob_simple.py    # Simple interface"
+echo
+echo "💡 Make sure Ollama is running: ollama serve"
+echo "✅ Ready to chat with Bob!"

@@ -1,0 +1,7 @@
+# Bob Essential Dependencies (uv-friendly)  
+aiohttp>=3.9.0
+async-timeout>=4.0.0
+fastapi>=0.100.0
+websockets>=11.0.0
+ollama>=0.3.0
+pydantic>=2.0.0

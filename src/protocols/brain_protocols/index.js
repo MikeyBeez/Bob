@@ -4,14 +4,14 @@
  * This index contains ENHANCED COPIES of brain system protocols
  * Original protocols are PRESERVED in their original locations
  * 
- * Generated: 2025-08-29T02:25:24.104Z
+ * Generated: 2025-08-29T03:29:14.389Z
  * Total Enhanced Protocols: 27
  */
 
 const protocolIndex = {
     metadata: {
         total: 27,
-        generated: '2025-08-29T02:25:24.104Z',
+        generated: '2025-08-29T03:29:14.389Z',
         operation: 'copy_and_enhance',
         originalPreserved: true
     },

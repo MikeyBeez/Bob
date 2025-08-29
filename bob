@@ -1,7 +1,23 @@
 #!/bin/bash
-# Bob - LLM-as-Kernel Intelligence System
-# Claude Desktop Experience with Brain System
+# Bob Launcher - Using uv and virtual environment
 
 echo "🤖 Starting Bob - LLM-as-Kernel Intelligence System..."
+
 cd ~/Bob
-python3 bob.py
+
+# Activate virtual environment if it exists
+if [ -d ".venv" ]; then
+    source .venv/bin/activate
+fi
+
+# Try the full Bob first, with fallback to simple version
+if python3 -c "import aiohttp" 2>/dev/null; then
+    echo "✅ Full dependencies available - starting advanced Bob..."
+    python3 bob.py
+elif python3 -c "import subprocess" 2>/dev/null; then
+    echo "⚡ Using simple Bob interface (no complex dependencies needed)..."
+    python3 bob_simple.py
+else
+    echo "❌ Python issues. Falling back to chat interface..."
+    node bob_chat_repl.js
+fi
