@@ -4,7 +4,7 @@
  * Integration layer for enhanced brain protocol copies
  * Provides unified access to all enhanced protocols
  * 
- * Generated: 2025-08-29T02:20:17.675Z
+ * Generated: 2025-08-29T02:25:24.105Z
  */
 
 const protocolIndex = require('./index');

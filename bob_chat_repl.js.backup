@@ -1,0 +1,413 @@
+#!/usr/bin/env node
+/**
+ * Bob Chat REPL - Natural Conversation + Brain System Access
+ * 
+ * Interactive REPL that combines natural conversation with brain system tools.
+ * Bob can chat naturally AND access all 72 tools and 54+ protocols when needed.
+ */
+
+const readline = require('readline');
+const util = require('util');
+const { spawn } = require('child_process');
+const BobBrainIntegration = require('./src/brain_integration');
+
+class BobChatREPL {
+    constructor() {
+        this.brain = null;
+        this.history = [];
+        this.conversationHistory = [];
+        this.systemCommands = new Set(['help', 'status', 'tools', 'protocols', 'health', 'metrics', 'clear', 'exit', 'quit', 'brain']);
+        
+        this.rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+            prompt: '💬 You: ',
+            historySize: 100
+        });
+        
+        this.setupReadline();
+    }
+    
+    setupReadline() {
+        this.rl.on('line', async (input) => {
+            const line = input.trim();
+            if (line) {
+                this.history.push(line);
+                await this.processInput(line);
+            }
+            this.rl.prompt();
+        });
+        
+        this.rl.on('close', () => {
+            this.exit();
+        });
+    }
+    
+    async start() {
+        console.log('🤖 Bob - LLM-as-Kernel Intelligence System');
+        console.log('💬 Natural conversation with brain system access');
+        console.log('🧠 72 tools and 54+ protocols available when needed');
+        console.log('💡 Just chat naturally or use commands like "brain status"');
+        console.log('');
+        
+        // Initialize brain system in background
+        this.initializeBrain();
+        
+        // Show initial greeting
+        const greeting = "Hello! I'm Bob, your LLM-as-Kernel intelligence system. I can have natural conversations and also access my brain system with 72 tools and 54+ protocols when needed. What would you like to talk about?";
+        await this.bobRespond(greeting);
+        
+        this.rl.prompt();
+    }
+    
+    async processInput(input) {
+        // Check if it's a system command
+        const parts = input.toLowerCase().split(' ');
+        const firstWord = parts[0];
+        
+        if (this.systemCommands.has(firstWord)) {
+            await this.handleSystemCommand(input);
+        } else {
+            // Natural conversation
+            this.conversationHistory.push({ role: 'user', content: input });
+            await this.handleChat(input);
+        }
+    }
+    
+    async handleSystemCommand(input) {
+        const parts = input.toLowerCase().split(' ');
+        const command = parts[0];
+        const args = parts.slice(1);
+        
+        switch (command) {
+            case 'help':
+                this.showHelp();
+                break;
+            case 'status':
+                await this.showBrainStatus();
+                break;
+            case 'tools':
+                await this.listTools(args[0]);
+                break;
+            case 'protocols':
+                await this.listProtocols();
+                break;
+            case 'health':
+                await this.checkBrainHealth();
+                break;
+            case 'metrics':
+                await this.showMetrics();
+                break;
+            case 'brain':
+                await this.handleBrainCommand(args);
+                break;
+            case 'clear':
+                console.clear();
+                console.log('🤖 Bob - Ready to chat!');
+                console.log('');
+                break;
+            case 'exit':
+            case 'quit':
+                await this.exit();
+                break;
+        }
+    }
+    
+    async handleChat(input) {
+        try {
+            // Check if the user is asking about brain system capabilities
+            if (this.shouldUseBrainSystem(input)) {
+                await this.handleIntelligentResponse(input);
+            } else {
+                // Use fallback conversation for now
+                await this.handleBasicChat(input);
+            }
+        } catch (error) {
+            console.log('🔧 Bob: I had a technical issue, but I\\'m still here! Let me try a different approach.');
+            console.log(`(Error: ${error.message})`);
+        }
+    }
+    
+    shouldUseBrainSystem(input) {
+        const brainTriggers = [
+            'tools', 'brain', 'system', 'status', 'protocol', 'analyze', 'process',
+            'remember', 'recall', 'search', 'find', 'execute', 'run', 'help me',
+            'what can you do', 'capabilities', 'functions', 'intelligence'
+        ];
+        
+        const lowerInput = input.toLowerCase();
+        return brainTriggers.some(trigger => lowerInput.includes(trigger));
+    }
+    
+    async handleIntelligentResponse(input) {
+        if (!this.brain) {
+            await this.bobRespond('Let me initialize my brain system to help you better...');
+            await this.initializeBrain();
+        }
+        
+        // Use brain system for intelligent responses
+        try {
+            // Try cognitive processing first
+            const cognitiveResult = await this.brain.executeTool('cognition:cognition_process', {
+                content: input,
+                context: 'conversation'
+            });
+            
+            if (cognitiveResult && cognitiveResult.result) {
+                const insights = cognitiveResult.result.insights || [cognitiveResult.result];
+                const response = Array.isArray(insights) ? insights.join(' ') : String(insights);
+                await this.bobRespond(`🧠 ${response}`);
+                
+                // Add some helpful context
+                if (input.toLowerCase().includes('what can you do')) {
+                    await this.bobRespond('I have access to 72 tools across 7 categories (core, intelligence, memory, development, analysis, utility, workflow) and 54+ enhanced protocols. Try asking me to analyze something or use commands like "brain status" to see my capabilities!');
+                }
+            } else {
+                await this.fallbackResponse(input);
+            }
+        } catch (error) {
+            console.log('🔧 Having trouble with brain processing, using fallback...');
+            await this.fallbackResponse(input);
+        }
+    }
+    
+    async handleBasicChat(input) {
+        // Simple conversational responses
+        const lowerInput = input.toLowerCase();
+        
+        if (lowerInput.includes('hello') || lowerInput.includes('hi')) {
+            await this.bobRespond("Hello! Great to meet you. I'm Bob, your LLM-as-Kernel intelligence system. I can chat naturally and also access powerful brain system tools when needed. What's on your mind?");
+        } else if (lowerInput.includes('how are you')) {
+            await this.bobRespond("I'm doing well, thank you! My brain system is running smoothly with 72 tools and 54+ protocols ready to help. How can I assist you today?");
+        } else if (lowerInput.includes('thank')) {
+            await this.bobRespond("You're very welcome! I'm here to help with conversations or more complex tasks using my brain system. What would you like to explore?");
+        } else {
+            // Generic helpful response
+            await this.bobRespond(`I understand you're talking about "${input}". While I'm working on my natural conversation abilities, I can definitely help you with analysis, research, or other tasks using my brain system with 72 tools. Try asking "what can you do" or "brain status" to see my capabilities!`);
+        }
+    }
+    
+    async fallbackResponse(input) {
+        // Simple pattern-based responses as fallback
+        const lowerInput = input.toLowerCase();
+        
+        if (lowerInput.includes('what can you do') || lowerInput.includes('capabilities')) {
+            await this.bobRespond("I'm Bob, your LLM-as-Kernel intelligence system! I can have natural conversations and access 72 specialized tools across 7 categories: core (22), intelligence (9), memory (6), development (11), analysis (6), utility (10), and workflow (8). I also have 54+ enhanced protocols for complex operations. Try 'brain status' to see my current state!");
+        } else if (lowerInput.includes('help')) {
+            const helpMsg = `I can chat naturally or help with specific tasks using my brain system. Try commands like:
+• "brain status" - Check my system status
+• "tools" - See available tools  
+• "protocols" - List enhanced protocols
+• "analyze [something]" - Use my analysis tools
+Or just chat with me normally!`;
+            await this.bobRespond(helpMsg);
+        } else {
+            await this.bobRespond("I understand you're interested in my brain system capabilities. Try asking me to analyze something, or use 'brain status' to see what I can do!");
+        }
+    }
+    
+    async initializeBrain() {
+        if (this.brain) {
+            return;
+        }
+        
+        try {
+            this.brain = await BobBrainIntegration.quickStart({
+                enableChatUpdates: false  // Quieter for chat mode
+            });
+            console.log('🧠 Brain system ready in background');
+        } catch (error) {
+            console.log('⚠️  Brain system initialization had issues, but chat is still available');
+        }
+    }
+    
+    async handleBrainCommand(args) {
+        if (!this.brain) {
+            await this.bobRespond('Let me initialize my brain system first...');
+            await this.initializeBrain();
+        }
+        
+        if (args.length === 0) {
+            await this.bobRespond('My brain system is active! Available commands: status, tools, protocols, health, metrics');
+            return;
+        }
+        
+        const subcommand = args[0];
+        switch (subcommand) {
+            case 'status':
+                await this.showBrainStatus();
+                break;
+            case 'tools':
+                await this.listTools(args[1]);
+                break;
+            case 'protocols':
+                await this.listProtocols();
+                break;
+            case 'health':
+                await this.checkBrainHealth();
+                break;
+            case 'metrics':
+                await this.showMetrics();
+                break;
+            default:
+                await this.bobRespond(`Unknown brain command: ${subcommand}. Try: status, tools, protocols, health, metrics`);
+        }
+    }
+    
+    async bobRespond(message) {
+        console.log(`🤖 Bob: ${message}`);
+        console.log('');
+        this.conversationHistory.push({ role: 'assistant', content: message });
+    }
+    
+    showHelp() {
+        const helpText = `
+🤖 Bob Chat REPL - Help
+
+💬 NATURAL CONVERSATION:
+   Just type normally and Bob will respond!
+   
+🧠 BRAIN SYSTEM COMMANDS:
+   brain status     - Show brain system status
+   brain tools      - List available tools  
+   brain protocols  - List enhanced protocols
+   brain health     - Check system health
+   brain metrics    - Show performance metrics
+   
+🛠️  UTILITY COMMANDS:
+   help            - Show this help
+   clear           - Clear screen
+   exit/quit       - Exit the REPL
+   
+💡 EXAMPLES:
+   "Hello Bob, how are you?"
+   "What can you analyze for me?"
+   "brain status"
+   "Can you help me understand AI?"
+   
+Bob combines natural conversation with powerful brain system capabilities!
+`;
+        console.log(helpText);
+    }
+    
+    async showBrainStatus() {
+        if (!this.brain) {
+            console.log('🧠 Brain system not initialized. Initializing now...');
+            await this.initializeBrain();
+            return;
+        }
+        
+        const status = this.brain.getStatus();
+        console.log('');
+        console.log('🧠 Brain System Status:');
+        console.log(`   State: ${status.state}`);
+        console.log(`   Tools: ${status.integration.toolsAvailable}`);
+        console.log(`   Protocols: ${status.integration.protocolsCopied}`);
+        console.log(`   Uptime: ${Math.round(status.metrics.uptime / 1000)}s`);
+        console.log('');
+    }
+    
+    async listTools(category) {
+        if (!this.brain) {
+            console.log('🧠 Brain system not initialized. Initializing...');
+            await this.initializeBrain();
+            return;
+        }
+        
+        if (category) {
+            const tools = this.brain.getToolsByCategory(category);
+            console.log('');
+            console.log(`🔧 ${category.charAt(0).toUpperCase() + category.slice(1)} Tools (${tools.length}):`);
+            tools.slice(0, 10).forEach(tool => console.log(`   ${tool}`));
+            if (tools.length > 10) {
+                console.log(`   ... and ${tools.length - 10} more`);
+            }
+        } else {
+            console.log('');
+            console.log('🔧 Tool Categories:');
+            console.log('   core (22)        intelligence (9)    memory (6)');
+            console.log('   development (11) analysis (6)       utility (10)');
+            console.log('   workflow (8)');
+            console.log('');
+            console.log('💡 Use "brain tools <category>" for details');
+        }
+        console.log('');
+    }
+    
+    async listProtocols() {
+        if (!this.brain) {
+            console.log('🧠 Brain system not initialized. Initializing...');
+            await this.initializeBrain();
+            return;
+        }
+        
+        const status = this.brain.getStatus();
+        console.log('');
+        console.log(`📋 Enhanced Protocols (${status.integration.protocolsCopied}+ available)`);
+        console.log('   Foundation, Intelligence, Workflow, Integration protocols');
+        console.log('   All enhanced with async execution and brain integration');
+        console.log('');
+    }
+    
+    async checkBrainHealth() {
+        if (!this.brain) {
+            console.log('🧠 Brain system not initialized. Initializing...');
+            await this.initializeBrain();
+            return;
+        }
+        
+        try {
+            const health = await this.brain.healthCheck();
+            console.log('');
+            console.log(`🏥 Brain Health: ${health.overall}`);
+            console.log(`   Components: ${Object.keys(health.components).join(', ')}`);
+            if (health.issues.length === 0) {
+                console.log('   ✅ No issues detected');
+            }
+            console.log('');
+        } catch (error) {
+            console.log('❌ Health check failed:', error.message);
+        }
+    }
+    
+    async showMetrics() {
+        if (!this.brain) {
+            console.log('🧠 Brain system not initialized. Initializing...');
+            await this.initializeBrain();
+            return;
+        }
+        
+        const status = this.brain.getStatus();
+        console.log('');
+        console.log('📈 Brain Metrics:');
+        console.log(`   Operations: ${status.metrics.totalOperations}`);
+        console.log(`   Success Rate: ${(status.metrics.successRate * 100).toFixed(1)}%`);
+        console.log(`   Uptime: ${Math.round(status.metrics.uptime / 1000)}s`);
+        console.log('');
+    }
+    
+    async exit() {
+        console.log('');
+        console.log('👋 Bob: Thanks for chatting! Shutting down gracefully...');
+        
+        if (this.brain) {
+            try {
+                await this.brain.shutdown();
+                console.log('🧠 Brain system shutdown complete');
+            } catch (error) {
+                console.log('⚠️  Brain shutdown had issues, but that\\'s okay');
+            }
+        }
+        
+        console.log('🤖 Bob: Goodbye! Hope to chat again soon!');
+        process.exit(0);
+    }
+}
+
+// Start the Chat REPL
+if (require.main === module) {
+    const repl = new BobChatREPL();
+    repl.start().catch(console.error);
+}
+
+module.exports = BobChatREPL;

@@ -1,11 +1,32 @@
 #!/bin/bash
 
-# Bob Brain REPL Launcher
-# Quick launcher for Bob's interactive brain system
-
-echo "🚀 Starting Bob Brain REPL..."
-echo "🧠 Interactive access to 72 tools and 54+ protocols"
+# Bob REPL Launcher - Choose Your Interface
+echo "🤖 Bob - LLM-as-Kernel Intelligence System"
 echo ""
+echo "Choose your interface:"
+echo "1) 💬 Chat REPL - Natural conversation + brain system access"  
+echo "2) 🧠 Brain REPL - Direct tool and protocol access"
+echo "3) 🐍 Python CLI - Traditional CLI interface"
+echo ""
+read -p "Enter your choice (1-3): " choice
 
 cd ~/Bob
-node bob_brain_repl.js
+
+case $choice in
+    1)
+        echo "🚀 Starting Bob Chat REPL..."
+        node bob_chat_repl.js
+        ;;
+    2)
+        echo "🚀 Starting Bob Brain REPL..."
+        node bob_brain_repl.js
+        ;;
+    3)
+        echo "🚀 Starting Bob Python CLI..."
+        python bob_cli.py
+        ;;
+    *)
+        echo "Invalid choice. Starting Chat REPL by default..."
+        node bob_chat_repl.js
+        ;;
+esac

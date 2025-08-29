@@ -1,0 +1,4 @@
+#!/bin/bash
+# Bob Chat - Natural conversation with brain system access
+echo "🤖 Starting Bob Chat REPL..."
+cd ~/Bob && node bob_chat_repl.js
