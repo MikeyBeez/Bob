@@ -346,12 +346,23 @@ class BrainSystemFunctionBridge:
             elif tool_name == "brain_recall":
                 query = parameters.get("query", "")
                 
-                # Search actual stored memories if available
-                if hasattr(self, 'session_memory') and self.session_memory:
+                # Load memories from persistent file
+                memory_file = Path.home() / '.bob_memories.json'
+                memories_data = {}
+                
+                if memory_file.exists():
+                    try:
+                        with open(memory_file, 'r') as f:
+                            memories_data = json.load(f)
+                    except (json.JSONDecodeError, IOError):
+                        memories_data = {}
+                
+                # Search through stored memories
+                if memories_data:
                     found_memories = []
-                    for memory_id, memory_data in self.session_memory.items():
+                    for memory_id, memory_data in memories_data.items():
                         # Simple text search in memory content
-                        if query.lower() in memory_data['content'].lower() or len(query) < 5:  # Show all memories for short/generic queries
+                        if query.lower() in memory_data['content'].lower() or len(query) < 10:  # Show all memories for short/generic queries
                             found_memories.append(memory_data['content'])
                     
                     if found_memories:
@@ -369,7 +380,7 @@ class BrainSystemFunctionBridge:
                             "query": query
                         }
                 else:
-                    # No memories stored yet
+                    # No memory file exists yet
                     return {
                         "memories": [],
                         "count": 0,
@@ -379,16 +390,34 @@ class BrainSystemFunctionBridge:
                     }
             elif tool_name == "brain_remember":
                 content = parameters.get("content", "")
-                # Store the memory in session storage
-                if not hasattr(self, 'session_memory'):
-                    self.session_memory = {}
+                # Store the memory in persistent file storage
+                memory_file = Path.home() / '.bob_memories.json'
+                
+                # Load existing memories
+                memories = {}
+                if memory_file.exists():
+                    try:
+                        with open(memory_file, 'r') as f:
+                            memories = json.load(f)
+                    except (json.JSONDecodeError, IOError):
+                        memories = {}
                 
                 memory_id = f"mem_{hash(content) % 10000}"
-                self.session_memory[memory_id] = {
+                memories[memory_id] = {
                     "content": content,
                     "timestamp": "2025-08-29T15:30:00Z",
                     "category": "user_preference"
                 }
+                
+                # Save memories to file
+                try:
+                    with open(memory_file, 'w') as f:
+                        json.dump(memories, f, indent=2)
+                except IOError as e:
+                    return {
+                        "stored": False,
+                        "error": f"Failed to save memory: {str(e)}"
+                    }
                 
                 return {
                     "stored": True,
