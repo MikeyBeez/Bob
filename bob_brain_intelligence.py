@@ -40,8 +40,8 @@ class BobBrainIntelligence:
                 "context_hints": ["system health", "validation", "quality assurance"]
             },
             "development": {
-                "patterns": [r"code", r"build", r"create", r"develop", r"implement", r"project", r"git", r"repo", r"repository", r"commit", r"branch"],
-                "confidence_boost": 0.8,
+                "patterns": [r"code", r"build", r"create", r"develop", r"implement", r"project", r"git.*status", r"git", r"repo", r"repository", r"commit", r"branch", r"check.*git", r"git.*project"],
+                "confidence_boost": 1.1,  # Higher boost for development
                 "preferred_tools": ["find_project", "filesystem_read", "git_status"],
                 "context_hints": ["software development", "coding", "project management", "version control"]
             },
@@ -52,9 +52,9 @@ class BobBrainIntelligence:
                 "context_hints": ["data analysis", "investigation", "research", "bullshit detection"]
             },
             "system": {
-                "patterns": [r"status", r"health", r"system", r"info", r"information"],
+                "patterns": [r"brain.*status", r"system.*status", r"health", r"system.*health", r"info", r"information", r"brain.*info"],
                 "confidence_boost": 0.9,
-                "preferred_tools": ["brain_status", "git_status", "filesystem_read"],
+                "preferred_tools": ["brain_status", "filesystem_read"],
                 "context_hints": ["system administration", "monitoring", "diagnostics"]
             },
             "file_operations": {
@@ -199,6 +199,16 @@ class BobBrainIntelligence:
         
         # Development context
         elif primary_intent == "development":
+            # Handle git-specific requests with high priority
+            if any(term in user_message.lower() for term in ["git", "repo", "repository", "commit", "status"]) and "git" in user_message.lower():
+                tool_sequence.append({
+                    "tool_name": "git_status",
+                    "parameters": {"path": "/Users/bard/Bob"},
+                    "reasoning": "User requested git/repository status",
+                    "priority": "high"
+                })
+            
+            # Look for project names
             if "bob" in user_message.lower():
                 tool_sequence.append({
                     "tool_name": "find_project",
@@ -207,12 +217,14 @@ class BobBrainIntelligence:
                     "priority": "high"
                 })
             
-            tool_sequence.append({
-                "tool_name": "git_status",
-                "parameters": {"path": "/Users/bard/Bob"},
-                "reasoning": "Development context - checking git status",
-                "priority": "medium"
-            })
+            # If no git-specific request and no specific project, do general development check
+            if not tool_sequence:
+                tool_sequence.append({
+                    "tool_name": "git_status",
+                    "parameters": {"path": "/Users/bard/Bob"},
+                    "reasoning": "Development context - checking git status",
+                    "priority": "medium"
+                })
         
         return tool_sequence
     
