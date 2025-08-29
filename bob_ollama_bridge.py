@@ -345,19 +345,55 @@ class BrainSystemFunctionBridge:
                 }
             elif tool_name == "brain_recall":
                 query = parameters.get("query", "")
-                return {
-                    "memories": [f"Memory related to: {query}"],
-                    "count": 1,
-                    "relevance": 0.85,
-                    "query": query
-                }
+                
+                # Search actual stored memories if available
+                if hasattr(self, 'session_memory') and self.session_memory:
+                    found_memories = []
+                    for memory_id, memory_data in self.session_memory.items():
+                        # Simple text search in memory content
+                        if query.lower() in memory_data['content'].lower() or len(query) < 5:  # Show all memories for short/generic queries
+                            found_memories.append(memory_data['content'])
+                    
+                    if found_memories:
+                        return {
+                            "memories": found_memories,
+                            "count": len(found_memories),
+                            "relevance": 0.95,  # High relevance for actual matches
+                            "query": query
+                        }
+                    else:
+                        return {
+                            "memories": [],
+                            "count": 0,
+                            "relevance": 0.0,
+                            "query": query
+                        }
+                else:
+                    # No memories stored yet
+                    return {
+                        "memories": [],
+                        "count": 0,
+                        "relevance": 0.0,
+                        "query": query,
+                        "note": "No memories have been stored yet."
+                    }
             elif tool_name == "brain_remember":
                 content = parameters.get("content", "")
-                # Store the memory (in a real implementation this would go to a database)
+                # Store the memory in session storage
+                if not hasattr(self, 'session_memory'):
+                    self.session_memory = {}
+                
+                memory_id = f"mem_{hash(content) % 10000}"
+                self.session_memory[memory_id] = {
+                    "content": content,
+                    "timestamp": "2025-08-29T15:30:00Z",
+                    "category": "user_preference"
+                }
+                
                 return {
                     "stored": True,
                     "content": content,
-                    "memory_id": f"mem_{hash(content) % 10000}",
+                    "memory_id": memory_id,
                     "category": "user_preference",
                     "timestamp": "2025-08-29T15:30:00Z"
                 }
@@ -849,7 +885,18 @@ You can mention these capabilities when relevant, but respond naturally to conve
                 if tool_name == "brain_status":
                     response_parts.append(f"My system is {result['status']} with {result['tools_available']} tools and {result['protocols_loaded']} protocols loaded.")
                 elif tool_name == "brain_recall":
-                    response_parts.append(f"I found {result['count']} relevant memories with {result['relevance']*100:.0f}% relevance.")
+                    memories = result.get('memories', [])
+                    if memories and len(memories) > 0:
+                        response_parts.append(f"🧠 I found {result['count']} relevant memories with {result['relevance']*100:.0f}% relevance:")
+                        for memory in memories:
+                            response_parts.append(f"• {memory}")
+                    else:
+                        response_parts.append(f"🧠 I searched my memory but didn't find any relevant information about '{result.get('query', 'that topic')}'.")
+                elif tool_name == "brain_remember":
+                    if result.get('stored', False):
+                        response_parts.append(f"✅ Successfully stored in memory (ID: {result.get('memory_id', 'unknown')}) in category '{result.get('category', 'general')}'.")
+                    else:
+                        response_parts.append(f"❌ Failed to store memory: {result.get('error', 'Unknown error')}")
                 elif tool_name == "detect_bullshit":
                     response_parts.append(f"Analysis shows a bullshit score of {result['bullshit_score']:.1f}/1.0.")
             
@@ -979,6 +1026,21 @@ You can mention these capabilities when relevant, but respond naturally to conve
         """Format individual tool result for display."""
         if tool_name == "brain_status":
             return f"✅ **System Status Check Complete**\n\n• Status: {result['status']}\n• Tools: {result['tools_available']}\n• Protocols: {result['protocols_loaded']}\n• Model: {result['model']}\n• Uptime: {result['uptime']}"
+        
+        elif tool_name == "brain_remember":
+            if result.get('stored', False):
+                return f"✅ **Memory Stored Successfully**\n\n• Memory ID: {result.get('memory_id', 'unknown')}\n• Category: {result.get('category', 'general')}\n• Content: {result.get('content', '')[:100]}{'...' if len(result.get('content', '')) > 100 else ''}\n• Timestamp: {result.get('timestamp', 'unknown')}"
+            else:
+                return f"❌ **Memory Storage Failed**\n\nError: {result.get('error', 'Unknown error')}"
+        
+        elif tool_name == "brain_recall":
+            memories = result.get('memories', [])
+            if memories and len(memories) > 0:
+                memory_list = "\n".join([f"• {memory}" for memory in memories[:3]])  # Show max 3 memories
+                more_info = f"\n... and {len(memories) - 3} more" if len(memories) > 3 else ""
+                return f"✅ **Memory Recall Complete**\n\n• Found: {result['count']} memories\n• Relevance: {result['relevance']*100:.0f}%\n• Query: '{result.get('query', '')}'\n\n**Memories:**\n{memory_list}{more_info}"
+            else:
+                return f"🧠 **No Memories Found**\n\n• Query: '{result.get('query', '')}'\n• {result.get('note', 'No matching memories in storage.')}"
             
         elif tool_name == "filesystem_read":
             if 'content' in result:
