@@ -64,7 +64,7 @@ class BobBrainIntelligence:
                 "context_hints": ["file management", "content access", "navigation"]
             },
             "memory": {
-                "patterns": [r"remember", r"recall", r"memory", r"store", r"forget"],
+                "patterns": [r"remember", r"recall", r"memor", r"store", r"forget"],
                 "confidence_boost": 0.8,
                 "preferred_tools": ["brain_recall", "store_memory"],
                 "context_hints": ["memory management", "information storage", "recall"]
@@ -226,7 +226,7 @@ class BobBrainIntelligence:
         # Memory requests
         elif primary_intent == "memory":
             # Handle recall/remember questions first (more specific)
-            if any(term in user_message.lower() for term in ["what do you remember", "do you remember", "recall", "what did i"]):
+            if any(term in user_message.lower() for term in ["what do you remember", "do you remember", "what memories", "recall", "what did i"]):
                 # Extract the query from the message
                 query = user_message
                 if "remember" in user_message.lower():
