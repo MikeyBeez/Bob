@@ -69,6 +69,12 @@ class BobBrainIntelligence:
                 "preferred_tools": ["brain_recall", "store_memory"],
                 "context_hints": ["memory management", "information storage", "recall"]
             },
+            "protocol": {
+                "patterns": [r"protocols?", r"list.*protocols?", r"show.*protocols?", r"what.*protocols?", r"protocol.*list", r"my.*protocols?", r"available.*protocols?"],
+                "confidence_boost": 1.3,  # High boost for protocol requests
+                "preferred_tools": ["protocol_list", "protocol_search"],
+                "context_hints": ["protocol management", "system capabilities", "workflow protocols"]
+            },
             "conversation": {
                 "patterns": [r"hello", r"hi\b", r"help\b", r"what can you do", r"capabilities"],
                 "confidence_boost": 0.5,  # Lower boost for conversation
@@ -197,6 +203,26 @@ class BobBrainIntelligence:
                     "priority": "high"
                 })
         
+        # Protocol requests
+        elif primary_intent == "protocol":
+            # User asking about available protocols
+            if any(term in user_message.lower() for term in ["list", "show", "what", "available", "protocols"]):
+                tool_sequence.append({
+                    "tool_name": "protocol_list",
+                    "parameters": {},
+                    "reasoning": "User requesting list of available protocols",
+                    "priority": "high"
+                })
+            
+            # If asking about specific protocol, search for it
+            elif "protocol" in user_message.lower() and len(user_message.split()) > 2:
+                tool_sequence.append({
+                    "tool_name": "protocol_search",
+                    "parameters": {"query": user_message},
+                    "reasoning": "User asking about specific protocol functionality",
+                    "priority": "high"
+                })
+        
         # Development context
         elif primary_intent == "development":
             # Handle git-specific requests with high priority
@@ -289,6 +315,8 @@ class BobBrainIntelligence:
             return "analytical_structured"
         elif primary_intent == "development":
             return "technical_focused"
+        elif primary_intent == "protocol":
+            return "structured_list"
         elif confidence < 0.5:
             return "helpful_exploratory"
         else:
