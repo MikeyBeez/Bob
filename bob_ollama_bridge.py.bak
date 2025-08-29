@@ -1019,12 +1019,11 @@ To use a tool, respond with a JSON object in this exact format:
 IMPORTANT TOOL USAGE RULES:
 1. When users ask you to "test your tools", "test tools", "check your tools", "verify tools", or "run tests", respond with exactly: "TOOL_TEST_REQUEST"
 2. For brain status requests, use: {{"tool_call": true, "tool_name": "brain_status", "parameters": {{}}}}
-4. For file reading, use: {{"tool_call": true, "tool_name": "filesystem_read", "parameters": {{"path": "file_path"}}}}
-3. For protocol questions, use: {{"tool_call": true, "tool_name": "protocol_list", "parameters": {{}}}}
-5. For git status, use: {{"tool_call": true, "tool_name": "git_status", "parameters": {{"path": "repo_path"}}}}
-6. For bullshit detection, use: {{"tool_call": true, "tool_name": "detect_bullshit", "parameters": {{"text": "text_to_analyze"}}}}
-7. For project finding, use: {{"tool_call": true, "tool_name": "find_project", "parameters": {{"name": "project_name"}}}}
-8. For cognitive processing, use: {{"tool_call": true, "tool_name": "cognitive_process", "parameters": {{"content": "content_to_process", "mode": "analysis"}}}}
+3. For file reading, use: {{"tool_call": true, "tool_name": "filesystem_read", "parameters": {{"path": "file_path"}}}}
+4. For git status, use: {{"tool_call": true, "tool_name": "git_status", "parameters": {{"path": "repo_path"}}}}
+5. For bullshit detection, use: {{"tool_call": true, "tool_name": "detect_bullshit", "parameters": {{"text": "text_to_analyze"}}}}
+6. For project finding, use: {{"tool_call": true, "tool_name": "find_project", "parameters": {{"name": "project_name"}}}}
+7. For cognitive processing, use: {{"tool_call": true, "tool_name": "cognitive_process", "parameters": {{"content": "content_to_process", "mode": "analysis"}}}}
 
 Response according to the detected intent and style. Be {response_strategy['response']['tone']} and {'explain your reasoning clearly' if response_strategy['response']['should_explain_reasoning'] else 'keep responses concise'}.
 
