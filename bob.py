@@ -10,11 +10,11 @@ where users chat naturally and Ollama intelligently uses brain system tools.
 import asyncio
 import sys
 import os
+import readline
 from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
-from rich.prompt import Prompt
 
 # Add Bob directory to path
 bob_dir = Path(__file__).parent.absolute()
@@ -36,14 +36,64 @@ class BobDesktopExperience:
         self.console = Console()
         self.running = True
         
+        # Configure readline for command history and editing
+        self._setup_readline()
+        
+    def _setup_readline(self):
+        """Configure readline for better command-line experience."""
+        try:
+            # Enable command history
+            history_file = Path.home() / '.bob_history'
+            if history_file.exists():
+                readline.read_history_file(str(history_file))
+            
+            # Set history length
+            readline.set_history_length(1000)
+            
+            # Enable vi or emacs editing mode (emacs is more common)
+            readline.parse_and_bind('set editing-mode emacs')
+            
+            # Enable better key bindings
+            readline.parse_and_bind('"\e[A": history-search-backward')  # Up arrow
+            readline.parse_and_bind('"\e[B": history-search-forward')   # Down arrow
+            readline.parse_and_bind('"\e[C": forward-char')             # Right arrow  
+            readline.parse_and_bind('"\e[D": backward-char')            # Left arrow
+            readline.parse_and_bind('"\C-a": beginning-of-line')        # Ctrl+A
+            readline.parse_and_bind('"\C-e": end-of-line')              # Ctrl+E
+            readline.parse_and_bind('"\C-k": kill-line')                # Ctrl+K
+            readline.parse_and_bind('"\C-u": unix-line-discard')        # Ctrl+U
+            
+            # Enable tab completion (basic)
+            readline.set_completer_delims(' \t\n`~!@#$%^&*()=+[{]}\\|;:\'\",<>?')
+            readline.parse_and_bind('tab: complete')
+            
+            # Save history on exit
+            import atexit
+            atexit.register(readline.write_history_file, str(history_file))
+            
+        except ImportError:
+            # readline not available on this platform (Windows without pyreadline)
+            pass
+        except Exception as e:
+            # Fallback gracefully if readline configuration fails
+            print(f"Warning: Could not configure readline: {e}")
+    
+    def get_input(self, prompt_text: str = "💬") -> str:
+        """Get user input with readline support for editing and history."""
+        try:
+            # Use readline input for command history and editing
+            return input(f"\033[36m{prompt_text}\033[0m ")
+        except (EOFError, KeyboardInterrupt):
+            return "exit"
+        
     async def start(self):
         """Start Bob's interactive session."""
         self.show_welcome()
         
         while self.running:
             try:
-                # Get user input with Rich styling
-                user_input = Prompt.ask("💬", console=self.console).strip()
+                # Get user input with readline support for editing and history
+                user_input = self.get_input("💬").strip()
                 
                 # Handle system commands
                 if user_input.lower() in ['exit', 'quit', 'bye']:
