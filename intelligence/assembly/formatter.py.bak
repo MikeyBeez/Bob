@@ -1,0 +1,401 @@
+"""
+formatter.py - Context formatting and structuring module
+
+Handles formatting context for optimal LLM consumption.
+Structures data, manages token limits, and creates readable output.
+Clean API that produces consistent, well-formatted context.
+"""
+
+from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
+import json
+import re
+from dataclasses import dataclass
+from enum import Enum
+
+
+class FormatType(Enum):
+    """Supported output formats."""
+    PLAIN_TEXT = "plain_text"
+    MARKDOWN = "markdown"
+    JSON = "json"
+    STRUCTURED_PROMPT = "structured_prompt"
+
+
+class TokenEstimator:
+    """
+    Simple token estimation for context size management.
+    
+    Provides rough token counts to stay within limits.
+    Not perfect but good enough for context management.
+    """
+    
+    @staticmethod
+    def estimate_tokens(text: str) -> int:
+        """Rough token estimation (1 token ≈ 4 characters for English)."""
+        if not text:
+            return 0
+        
+        # Simple heuristic: ~4 chars per token
+        # Adjust for whitespace and punctuation
+        cleaned = re.sub(r'\s+', ' ', text.strip())
+        return max(1, len(cleaned) // 4)
+    
+    @staticmethod
+    def truncate_to_tokens(text: str, max_tokens: int) -> Tuple[str, int]:
+        """Truncate text to approximately max_tokens."""
+        estimated_tokens = TokenEstimator.estimate_tokens(text)
+        
+        if estimated_tokens <= max_tokens:
+            return text, estimated_tokens
+        
+        # Calculate approximate character limit
+        char_limit = max_tokens * 4
+        
+        # Truncate at word boundary
+        if len(text) > char_limit:
+            truncated = text[:char_limit]
+            last_space = truncated.rfind(' ')
+            if last_space > 0:
+                truncated = truncated[:last_space]
+            
+            truncated += "... [TRUNCATED]"
+            return truncated, TokenEstimator.estimate_tokens(truncated)
+        
+        return text, estimated_tokens
+
+
+@dataclass
+class FormattedSection:
+    """Represents a formatted section of context."""
+    title: str
+    content: str
+    tokens: int
+    priority: float
+    source_info: Dict[str, Any]
+
+
+class ContextFormatter:
+    """
+    Intelligent context formatting system.
+    
+    Public API for converting raw context into structured,
+    LLM-optimized format with token management.
+    """
+    
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        self.config = config or {}
+        
+        self.format_settings = {
+            'max_total_tokens': self.config.get('max_total_tokens', 128000),
+            'max_section_tokens': self.config.get('max_section_tokens', 4000),
+            'include_metadata': self.config.get('include_metadata', True),
+            'include_timestamps': self.config.get('include_timestamps', True),
+            'truncation_strategy': self.config.get('truncation_strategy', 'smart')
+        }
+        
+        self._metrics = {
+            'contexts_formatted': 0,
+            'total_tokens_output': 0,
+            'sections_truncated': 0,
+            'formatting_time_ms': 0
+        }
+    
+    def format_context(self, context_items: List[Any], 
+                      format_type: FormatType = FormatType.STRUCTURED_PROMPT,
+                      max_tokens: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Main API for context formatting.
+        
+        Args:
+            context_items: List of prioritized context items
+            format_type: Output format type
+            max_tokens: Override default token limit
+            
+        Returns:
+            Dict with formatted context and metadata
+        """
+        start_time = datetime.now()
+        
+        max_tokens = max_tokens or self.format_settings['max_total_tokens']
+        
+        # Group items by source/type
+        grouped_items = self._group_context_items(context_items)
+        
+        # Create sections
+        sections = self._create_sections(grouped_items, max_tokens)
+        
+        # Format based on type
+        if format_type == FormatType.STRUCTURED_PROMPT:
+            formatted = self._format_as_structured_prompt(sections)
+        elif format_type == FormatType.MARKDOWN:
+            formatted = self._format_as_markdown(sections)
+        elif format_type == FormatType.JSON:
+            formatted = self._format_as_json(sections)
+        else:  # PLAIN_TEXT
+            formatted = self._format_as_plain_text(sections)
+        
+        # Calculate metrics
+        processing_time = (datetime.now() - start_time).total_seconds() * 1000
+        total_tokens = sum(section.tokens for section in sections)
+        
+        self._metrics['contexts_formatted'] += 1
+        self._metrics['total_tokens_output'] += total_tokens
+        self._metrics['formatting_time_ms'] += processing_time
+        
+        return {
+            'formatted_context': formatted,
+            'metadata': {
+                'total_tokens': total_tokens,
+                'sections_count': len(sections),
+                'format_type': format_type.value,
+                'truncated_sections': sum(1 for s in sections if '[TRUNCATED]' in s.content),
+                'sources_included': list(set(s.source_info.get('source_id', 'unknown') 
+                                           for s in sections))
+            },
+            'sections': sections
+        }
+    
+    def _group_context_items(self, items: List[Any]) -> Dict[str, List[Any]]:
+        """Group context items by source/type for better organization."""
+        groups = {}
+        
+        for item in items:
+            # Determine grouping key
+            if hasattr(item, 'source_id'):
+                group_key = f"source_{item.source_id}"
+            elif hasattr(item, 'item_type'):
+                group_key = f"type_{item.item_type}"
+            else:
+                group_key = "general"
+            
+            if group_key not in groups:
+                groups[group_key] = []
+            groups[group_key].append(item)
+        
+        return groups
+    
+    def _create_sections(self, grouped_items: Dict[str, List[Any]], 
+                        max_total_tokens: int) -> List[FormattedSection]:
+        """Convert grouped items into formatted sections."""
+        sections = []
+        tokens_used = 0
+        max_section_tokens = self.format_settings['max_section_tokens']
+        
+        for group_name, items in grouped_items.items():
+            if tokens_used >= max_total_tokens:
+                break
+            
+            # Calculate available tokens for this section
+            remaining_tokens = max_total_tokens - tokens_used
+            section_token_limit = min(max_section_tokens, remaining_tokens)
+            
+            # Create section content
+            section_content = []
+            section_tokens = 0
+            
+            for item in items:
+                item_text = self._extract_item_text(item)
+                item_tokens = TokenEstimator.estimate_tokens(item_text)
+                
+                if section_tokens + item_tokens > section_token_limit:
+                    # Truncate if needed
+                    remaining_section_tokens = section_token_limit - section_tokens
+                    if remaining_section_tokens > 50:  # Only if reasonable space left
+                        truncated_text, actual_tokens = TokenEstimator.truncate_to_tokens(
+                            item_text, remaining_section_tokens
+                        )
+                        section_content.append(truncated_text)
+                        section_tokens += actual_tokens
+                        self._metrics['sections_truncated'] += 1
+                    break
+                else:
+                    section_content.append(item_text)
+                    section_tokens += item_tokens
+            
+            if section_content:
+                # Get section metadata
+                first_item = items[0]
+                source_info = {
+                    'source_id': getattr(first_item, 'source_id', 'unknown'),
+                    'item_count': len(section_content),
+                    'group_name': group_name
+                }
+                
+                # Calculate priority (average of items)
+                if hasattr(first_item, 'final_score'):
+                    priority = sum(getattr(item, 'final_score', 0.0) for item in items[:len(section_content)])
+                    priority /= len(section_content)
+                else:
+                    priority = 0.5
+                
+                section = FormattedSection(
+                    title=self._generate_section_title(group_name, source_info),
+                    content='\n\n'.join(section_content),
+                    tokens=section_tokens,
+                    priority=priority,
+                    source_info=source_info
+                )
+                
+                sections.append(section)
+                tokens_used += section_tokens
+        
+        # Sort sections by priority (descending)
+        sections.sort(key=lambda x: x.priority, reverse=True)
+        
+        return sections
+    
+    def _extract_item_text(self, item: Any) -> str:
+        """Extract text content from various item types."""
+        if hasattr(item, 'content') and hasattr(item.content, 'content'):
+            # ContextItem wrapper
+            return str(item.content.content)
+        elif hasattr(item, 'content'):
+            # Direct content
+            return str(item.content)
+        elif isinstance(item, dict):
+            # Dictionary format
+            return item.get('content', item.get('text', str(item)))
+        else:
+            # Fallback
+            return str(item)
+    
+    def _generate_section_title(self, group_name: str, source_info: Dict[str, Any]) -> str:
+        """Generate descriptive section titles."""
+        source_id = source_info.get('source_id', 'unknown')
+        item_count = source_info.get('item_count', 0)
+        
+        if group_name.startswith('source_'):
+            return f"Context from {source_id} ({item_count} items)"
+        elif group_name.startswith('type_'):
+            item_type = group_name[5:]  # Remove 'type_' prefix
+            return f"{item_type.title()} Context ({item_count} items)"
+        else:
+            return f"General Context ({item_count} items)"
+    
+    def _format_as_structured_prompt(self, sections: List[FormattedSection]) -> str:
+        """Format as structured prompt for LLM consumption."""
+        output = []
+        
+        # Header
+        output.append("=== CONTEXT INFORMATION ===")
+        output.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        output.append(f"Sections: {len(sections)}")
+        output.append("")
+        
+        # Sections
+        for i, section in enumerate(sections, 1):
+            output.append(f"--- SECTION {i}: {section.title} ---")
+            if self.format_settings['include_metadata']:
+                output.append(f"Priority: {section.priority:.3f} | Tokens: {section.tokens}")
+                if self.format_settings['include_timestamps']:
+                    output.append(f"Source: {section.source_info.get('source_id', 'unknown')}")
+                output.append("")
+            
+            output.append(section.content)
+            output.append("")
+        
+        output.append("=== END CONTEXT ===")
+        
+        return '\n'.join(output)
+    
+    def _format_as_markdown(self, sections: List[FormattedSection]) -> str:
+        """Format as Markdown document."""
+        output = []
+        
+        # Header
+        output.append("# Context Information")
+        output.append(f"*Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*")
+        output.append("")
+        
+        # Table of contents
+        if len(sections) > 1:
+            output.append("## Contents")
+            for i, section in enumerate(sections, 1):
+                output.append(f"{i}. {section.title}")
+            output.append("")
+        
+        # Sections
+        for i, section in enumerate(sections, 1):
+            output.append(f"## {i}. {section.title}")
+            
+            if self.format_settings['include_metadata']:
+                metadata = []
+                metadata.append(f"**Priority:** {section.priority:.3f}")
+                metadata.append(f"**Tokens:** {section.tokens}")
+                metadata.append(f"**Source:** {section.source_info.get('source_id', 'unknown')}")
+                output.append(" | ".join(metadata))
+                output.append("")
+            
+            output.append(section.content)
+            output.append("")
+        
+        return '\n'.join(output)
+    
+    def _format_as_json(self, sections: List[FormattedSection]) -> str:
+        """Format as JSON structure."""
+        data = {
+            'generated_at': datetime.now().isoformat(),
+            'total_sections': len(sections),
+            'total_tokens': sum(s.tokens for s in sections),
+            'sections': []
+        }
+        
+        for i, section in enumerate(sections):
+            section_data = {
+                'index': i + 1,
+                'title': section.title,
+                'content': section.content,
+                'tokens': section.tokens,
+                'priority': section.priority,
+                'source_info': section.source_info
+            }
+            data['sections'].append(section_data)
+        
+        return json.dumps(data, indent=2)
+    
+    def _format_as_plain_text(self, sections: List[FormattedSection]) -> str:
+        """Format as plain text."""
+        output = []
+        
+        for section in sections:
+            output.append(section.content)
+        
+        return '\n\n'.join(output)
+    
+    def get_format_preview(self, sections: List[FormattedSection], 
+                          max_preview_chars: int = 500) -> str:
+        """Get a preview of formatted output."""
+        preview = self._format_as_structured_prompt(sections)
+        
+        if len(preview) > max_preview_chars:
+            preview = preview[:max_preview_chars] + "... [PREVIEW TRUNCATED]"
+        
+        return preview
+    
+    def estimate_final_tokens(self, sections: List[FormattedSection], 
+                            format_type: FormatType) -> int:
+        """Estimate tokens for final formatted output."""
+        # Quick format to get size estimate
+        if format_type == FormatType.JSON:
+            sample = self._format_as_json(sections[:2] if len(sections) > 2 else sections)
+        else:
+            sample = self._format_as_structured_prompt(sections[:2] if len(sections) > 2 else sections)
+        
+        base_tokens = TokenEstimator.estimate_tokens(sample)
+        content_tokens = sum(s.tokens for s in sections)
+        
+        # Estimate overhead tokens (headers, formatting, etc.)
+        overhead_factor = 1.1 if format_type == FormatType.JSON else 1.05
+        
+        return int((base_tokens - content_tokens + content_tokens) * overhead_factor)
+    
+    def get_metrics(self) -> Dict[str, Any]:
+        """Get formatting performance metrics."""
+        return {
+            **self._metrics,
+            'format_settings': self.format_settings,
+            'average_tokens_per_context': (
+                self._metrics['total_tokens_output'] / max(1, self._metrics['contexts_formatted'])
+            )
+        }

@@ -1,0 +1,23 @@
+
+# 2025-08-22 16:32:44.972547
++y
+
+# 2025-08-22 16:33:44.371891
++ll
+
+# 2025-08-22 16:38:13.968186
++hello
+
+# 2025-08-22 16:39:26.507242
++I didn't make a request.  I said Hello.
+
+# 2025-08-22 16:47:08.714802
++git submodule add ../Code/mcp-protocol-engine
++Cloning into '/Users/bard/Bob/mcp-protocol-engine'...
++fatal: remote error:
++ MikeyBeez/Code/mcp-protocol-engine is not a valid repository name
++Visit https://support.github.com/ for help
++fatal: clone of 'git@github.com:MikeyBeez/Code/mcp-protocol-engine' into submodule path '/Users/bard/Bob/mcp-protocol-engine' failed
+
+# 2025-08-22 16:47:18.322555
++y

@@ -1,0 +1,500 @@
+.
+├── archive
+│   ├── advanced_research_agent.py
+│   ├── reasoning roadmap.txt
+│   └── refactoring_plan.md
+├── catastrophic_forgetting
+├── CODE_OF_CONDUCT.md
+├── config.py
+├── data
+│   ├── edgebase
+│   │   └── knowledge_edges.db
+│   └── json_history
+│       ├── 20240907_204658_interaction.json
+│       ├── 20240907_204724_interaction.json
+│       ├── 20240907_204729_interaction.json
+│       ├── 20240907_204744_interaction.json
+│       ├── 20240907_204755_interaction.json
+│       ├── 20240907_204832_interaction.json
+│       ├── 20240907_204909_interaction.json
+│       ├── 20240907_204947_interaction.json
+│       ├── 20240907_204950_interaction.json
+│       ├── 20240907_204955_interaction.json
+│       ├── 20240908_154725_interaction.json
+│       ├── 20240908_154727_interaction.json
+│       ├── 20240908_154729_interaction.json
+│       ├── 20240908_154737_interaction.json
+│       ├── 20240908_154750_interaction.json
+│       ├── 20240908_154752_interaction.json
+│       ├── 20240908_154756_interaction.json
+│       ├── 20240908_154931_interaction.json
+│       ├── 20240908_154947_interaction.json
+│       ├── 20240908_155004_interaction.json
+│       ├── 20240908_155013_interaction.json
+│       ├── 20240908_155022_interaction.json
+│       ├── 20240908_155024_interaction.json
+│       ├── 20240908_155030_interaction.json
+│       ├── 20240908_155205_interaction.json
+│       ├── 20240908_155207_interaction.json
+│       ├── 20240908_155210_interaction.json
+│       ├── 20240908_155219_interaction.json
+│       ├── 20240908_155227_interaction.json
+│       ├── 20240908_155229_interaction.json
+│       ├── 20240908_155232_interaction.json
+│       ├── 20240908_155630_interaction.json
+│       ├── 20240908_155643_interaction.json
+│       ├── 20240908_155650_interaction.json
+│       ├── 20240908_155653_interaction.json
+│       ├── 20240908_155658_interaction.json
+│       ├── 20240908_155859_interaction.json
+│       ├── 20240908_155914_interaction.json
+│       ├── 20240908_155931_interaction.json
+│       ├── 20240908_155940_interaction.json
+│       ├── 20240908_155955_interaction.json
+│       ├── 20240908_160000_interaction.json
+│       ├── 20240908_160006_interaction.json
+│       ├── 20240908_160905_interaction.json
+│       ├── 20240908_160917_interaction.json
+│       ├── 20240908_160920_interaction.json
+│       ├── 20240908_160933_interaction.json
+│       ├── 20240908_160946_interaction.json
+│       ├── 20240908_160948_interaction.json
+│       ├── 20240908_160955_interaction.json
+│       ├── 20240908_161524_interaction.json
+│       ├── 20240908_161527_interaction.json
+│       ├── 20240908_161530_interaction.json
+│       ├── 20240908_161541_interaction.json
+│       ├── 20240908_161553_interaction.json
+│       ├── 20240908_161556_interaction.json
+│       ├── 20240908_161601_interaction.json
+│       ├── 20240908_162244_interaction.json
+│       ├── 20240908_162259_interaction.json
+│       ├── 20240908_162303_interaction.json
+│       ├── 20240908_162316_interaction.json
+│       ├── 20240908_162327_interaction.json
+│       ├── 20240908_162329_interaction.json
+│       ├── 20240908_162335_interaction.json
+│       ├── 20240908_162747_interaction.json
+│       ├── 20240908_162750_interaction.json
+│       ├── 20240908_162807_interaction.json
+│       ├── 20240908_162820_interaction.json
+│       ├── 20240908_162837_interaction.json
+│       ├── 20240908_162839_interaction.json
+│       ├── 20240908_162845_interaction.json
+│       ├── 20240908_163044_interaction.json
+│       ├── 20240908_163047_interaction.json
+│       ├── 20240908_163112_interaction.json
+│       ├── 20240908_163125_interaction.json
+│       ├── 20240908_163138_interaction.json
+│       ├── 20240908_163140_interaction.json
+│       ├── 20240908_163144_interaction.json
+│       ├── 20240908_163717_interaction.json
+│       ├── 20240908_163721_interaction.json
+│       ├── 20240908_163724_interaction.json
+│       ├── 20240908_163736_interaction.json
+│       ├── 20240908_163748_interaction.json
+│       ├── 20240908_163752_interaction.json
+│       ├── 20240908_163758_interaction.json
+│       ├── 20240908_163804_interaction.json
+│       ├── 20240908_163840_interaction.json
+│       ├── 20240908_164234_interaction.json
+│       ├── 20240908_164250_interaction.json
+│       ├── 20240908_164251_interaction.json
+│       ├── 20240908_164302_interaction.json
+│       ├── 20240908_164305_interaction.json
+│       ├── 20240908_164308_interaction.json
+│       ├── 20240908_164332_interaction.json
+│       ├── 20240908_164338_interaction.json
+│       ├── 20240908_164351_interaction.json
+│       ├── 20240908_164639_interaction.json
+│       ├── 20240908_164652_interaction.json
+│       ├── 20240908_164656_interaction.json
+│       ├── 20240908_164659_interaction.json
+│       ├── 20240908_164715_interaction.json
+│       ├── 20240908_164718_interaction.json
+│       ├── 20240908_164721_interaction.json
+│       ├── 20240908_164726_interaction.json
+│       ├── 20240908_164742_interaction.json
+│       ├── 20240908_165511_interaction.json
+│       ├── 20240908_165521_interaction.json
+│       ├── 20240908_165525_interaction.json
+│       ├── 20240908_165541_interaction.json
+│       ├── 20240908_165551_interaction.json
+│       ├── 20240908_165554_interaction.json
+│       ├── 20240908_165600_interaction.json
+│       ├── 20240908_165856_interaction.json
+│       ├── 20240908_165906_interaction.json
+│       ├── 20240908_165910_interaction.json
+│       ├── 20240908_165929_interaction.json
+│       ├── 20240908_165932_interaction.json
+│       ├── 20240908_165945_interaction.json
+│       ├── 20240908_165950_interaction.json
+│       ├── 20240908_170236_interaction.json
+│       ├── 20240908_170251_interaction.json
+│       ├── 20240908_170254_interaction.json
+│       ├── 20240908_170304_interaction.json
+│       ├── 20240908_170314_interaction.json
+│       ├── 20240908_170335_interaction.json
+│       ├── 20240908_170340_interaction.json
+│       ├── 20240908_171530_interaction.json
+│       ├── 20240908_171540_interaction.json
+│       ├── 20240908_171543_interaction.json
+│       ├── 20240908_171546_interaction.json
+│       ├── 20240908_171549_interaction.json
+│       ├── 20240908_171551_interaction.json
+│       ├── 20240908_172004_interaction.json
+│       ├── 20240908_184750_interaction.json
+│       ├── 20240908_184755_interaction.json
+│       ├── 20240908_185354_interaction.json
+│       ├── 20240908_185357_interaction.json
+│       ├── 20240908_185402_interaction.json
+│       ├── 20240908_185405_interaction.json
+│       ├── 20240908_185410_interaction.json
+│       ├── 20240908_185414_interaction.json
+│       ├── 20240908_185416_interaction.json
+│       ├── 20240908_185422_interaction.json
+│       ├── 20240908_185432_interaction.json
+│       ├── 20240909_100126_interaction.json
+│       ├── 20240909_100128_interaction.json
+│       ├── 20240909_100134_interaction.json
+│       ├── 20240909_100203_interaction.json
+│       ├── 20240909_100213_interaction.json
+│       ├── 20240909_100218_interaction.json
+│       ├── 20240909_100225_interaction.json
+│       ├── 20240913_200722_interaction.json
+│       └── embeddings
+│           ├── 20240907_204658_interaction.json.json
+│           ├── 20240907_204724_interaction.json.json
+│           ├── 20240907_204729_interaction.json.json
+│           ├── 20240907_204744_interaction.json.json
+│           ├── 20240907_204755_interaction.json.json
+│           ├── 20240907_204832_interaction.json.json
+│           ├── 20240907_204909_interaction.json.json
+│           ├── 20240907_204947_interaction.json.json
+│           ├── 20240907_204950_interaction.json.json
+│           ├── 20240907_204955_interaction.json.json
+│           ├── 20240908_154725_interaction.json.json
+│           ├── 20240908_154727_interaction.json.json
+│           ├── 20240908_154729_interaction.json.json
+│           ├── 20240908_154737_interaction.json.json
+│           ├── 20240908_154750_interaction.json.json
+│           ├── 20240908_154752_interaction.json.json
+│           ├── 20240908_154756_interaction.json.json
+│           ├── 20240908_154931_interaction.json.json
+│           ├── 20240908_154947_interaction.json.json
+│           ├── 20240908_155004_interaction.json.json
+│           ├── 20240908_155013_interaction.json.json
+│           ├── 20240908_155022_interaction.json.json
+│           ├── 20240908_155024_interaction.json.json
+│           ├── 20240908_155030_interaction.json.json
+│           ├── 20240908_155205_interaction.json.json
+│           ├── 20240908_155207_interaction.json.json
+│           ├── 20240908_155210_interaction.json.json
+│           ├── 20240908_155219_interaction.json.json
+│           ├── 20240908_155227_interaction.json.json
+│           ├── 20240908_155229_interaction.json.json
+│           ├── 20240908_155232_interaction.json.json
+│           ├── 20240908_155630_interaction.json.json
+│           ├── 20240908_155643_interaction.json.json
+│           ├── 20240908_155650_interaction.json.json
+│           ├── 20240908_155653_interaction.json.json
+│           ├── 20240908_155658_interaction.json.json
+│           ├── 20240908_155859_interaction.json.json
+│           ├── 20240908_155914_interaction.json.json
+│           ├── 20240908_155931_interaction.json.json
+│           ├── 20240908_155940_interaction.json.json
+│           ├── 20240908_155955_interaction.json.json
+│           ├── 20240908_160000_interaction.json.json
+│           ├── 20240908_160006_interaction.json.json
+│           ├── 20240908_160905_interaction.json.json
+│           ├── 20240908_160917_interaction.json.json
+│           ├── 20240908_160920_interaction.json.json
+│           ├── 20240908_160933_interaction.json.json
+│           ├── 20240908_160946_interaction.json.json
+│           ├── 20240908_160948_interaction.json.json
+│           ├── 20240908_160955_interaction.json.json
+│           ├── 20240908_161524_interaction.json.json
+│           ├── 20240908_161527_interaction.json.json
+│           ├── 20240908_161530_interaction.json.json
+│           ├── 20240908_161541_interaction.json.json
+│           ├── 20240908_161553_interaction.json.json
+│           ├── 20240908_161556_interaction.json.json
+│           ├── 20240908_161601_interaction.json.json
+│           ├── 20240908_162244_interaction.json.json
+│           ├── 20240908_162259_interaction.json.json
+│           ├── 20240908_162303_interaction.json.json
+│           ├── 20240908_162316_interaction.json.json
+│           ├── 20240908_162327_interaction.json.json
+│           ├── 20240908_162329_interaction.json.json
+│           ├── 20240908_162335_interaction.json.json
+│           ├── 20240908_162747_interaction.json.json
+│           ├── 20240908_162750_interaction.json.json
+│           ├── 20240908_162807_interaction.json.json
+│           ├── 20240908_162820_interaction.json.json
+│           ├── 20240908_162837_interaction.json.json
+│           ├── 20240908_162839_interaction.json.json
+│           ├── 20240908_162845_interaction.json.json
+│           ├── 20240908_163044_interaction.json.json
+│           ├── 20240908_163047_interaction.json.json
+│           ├── 20240908_163112_interaction.json.json
+│           ├── 20240908_163125_interaction.json.json
+│           ├── 20240908_163138_interaction.json.json
+│           ├── 20240908_163140_interaction.json.json
+│           ├── 20240908_163144_interaction.json.json
+│           ├── 20240908_163717_interaction.json.json
+│           ├── 20240908_163721_interaction.json.json
+│           ├── 20240908_163724_interaction.json.json
+│           ├── 20240908_163736_interaction.json.json
+│           ├── 20240908_163748_interaction.json.json
+│           ├── 20240908_163752_interaction.json.json
+│           ├── 20240908_163758_interaction.json.json
+│           ├── 20240908_163804_interaction.json.json
+│           ├── 20240908_163840_interaction.json.json
+│           ├── 20240908_164234_interaction.json.json
+│           ├── 20240908_164250_interaction.json.json
+│           ├── 20240908_164251_interaction.json.json
+│           ├── 20240908_164302_interaction.json.json
+│           ├── 20240908_164305_interaction.json.json
+│           ├── 20240908_164308_interaction.json.json
+│           ├── 20240908_164332_interaction.json.json
+│           ├── 20240908_164338_interaction.json.json
+│           ├── 20240908_164351_interaction.json.json
+│           ├── 20240908_164639_interaction.json.json
+│           ├── 20240908_164652_interaction.json.json
+│           ├── 20240908_164656_interaction.json.json
+│           ├── 20240908_164659_interaction.json.json
+│           ├── 20240908_164715_interaction.json.json
+│           ├── 20240908_164718_interaction.json.json
+│           ├── 20240908_164721_interaction.json.json
+│           ├── 20240908_164726_interaction.json.json
+│           ├── 20240908_164742_interaction.json.json
+│           ├── 20240908_165511_interaction.json.json
+│           ├── 20240908_165521_interaction.json.json
+│           ├── 20240908_165525_interaction.json.json
+│           ├── 20240908_165541_interaction.json.json
+│           ├── 20240908_165551_interaction.json.json
+│           ├── 20240908_165554_interaction.json.json
+│           ├── 20240908_165600_interaction.json.json
+│           ├── 20240908_165856_interaction.json.json
+│           ├── 20240908_165906_interaction.json.json
+│           ├── 20240908_165910_interaction.json.json
+│           ├── 20240908_165929_interaction.json.json
+│           ├── 20240908_165932_interaction.json.json
+│           ├── 20240908_165945_interaction.json.json
+│           ├── 20240908_165950_interaction.json.json
+│           ├── 20240908_170236_interaction.json.json
+│           ├── 20240908_170251_interaction.json.json
+│           ├── 20240908_170254_interaction.json.json
+│           ├── 20240908_170304_interaction.json.json
+│           ├── 20240908_170314_interaction.json.json
+│           ├── 20240908_170335_interaction.json.json
+│           ├── 20240908_170340_interaction.json.json
+│           ├── 20240908_171530_interaction.json.json
+│           ├── 20240908_171540_interaction.json.json
+│           ├── 20240908_171543_interaction.json.json
+│           ├── 20240908_171546_interaction.json.json
+│           ├── 20240908_171549_interaction.json.json
+│           ├── 20240908_171551_interaction.json.json
+│           ├── 20240908_172004_interaction.json.json
+│           ├── 20240908_184750_interaction.json.json
+│           ├── 20240908_184755_interaction.json.json
+│           ├── 20240908_185354_interaction.json.json
+│           ├── 20240908_185357_interaction.json.json
+│           ├── 20240908_185402_interaction.json.json
+│           ├── 20240908_185405_interaction.json.json
+│           ├── 20240908_185410_interaction.json.json
+│           ├── 20240908_185414_interaction.json.json
+│           ├── 20240908_185416_interaction.json.json
+│           ├── 20240908_185422_interaction.json.json
+│           ├── 20240908_185432_interaction.json.json
+│           ├── 20240909_100126_interaction.json.json
+│           ├── 20240909_100128_interaction.json.json
+│           ├── 20240909_100134_interaction.json.json
+│           ├── 20240909_100203_interaction.json.json
+│           ├── 20240909_100213_interaction.json.json
+│           ├── 20240909_100218_interaction.json.json
+│           ├── 20240909_100225_interaction.json.json
+│           └── 20240913_200722_interaction.json.json
+├── docs
+│   ├── api_document.md
+│   ├── arc_usage.md
+│   ├── architecture_guide.md
+│   ├── assemble_module.md
+│   ├── assistant_user_guide.md
+│   ├── banner_module.md
+│   ├── building_agents_advanced.md
+│   ├── building_agents_expert.md
+│   ├── building_agents.md
+│   ├── command_modules.md
+│   ├── config_file.md
+│   ├── contributing.md
+│   ├── ddg_search_module.md
+│   ├── edge_kb_specification.md
+│   ├── enhanced_reasoning_functions.py
+│   ├── framework_usage.md
+│   ├── input_module.md
+│   ├── json_memory_guide.md
+│   ├── logging_guide.md
+│   ├── ollama_client.md
+│   ├── pip_modules.md
+│   ├── setup_guide.md
+│   ├── testing_strategy.md
+│   └── voice_assist.md
+├── LICENSE
+├── logs
+│   └── ollama_agents.log
+├── README.md
+├── repo_map.txt
+├── requirements.txt
+├── run_tests.py
+├── src
+│   ├── __init__.py
+│   ├── agents
+│   │   ├── __init__.py
+│   │   ├── advanced_research_agent copy.py
+│   │   ├── advanced_research_agent.py
+│   │   ├── arc_agent.py
+│   │   ├── debate_agent.py
+│   │   ├── debug_agent copy.py
+│   │   ├── debug_agent_v2.py
+│   │   ├── debug_agent.py
+│   │   ├── memory_agent.py
+│   │   ├── multi_agent.py
+│   │   ├── one_agent.py
+│   │   ├── research_agent.py
+│   │   ├── simple_agent.py
+│   │   ├── smart_agent.py
+│   │   ├── v_agent2.py
+│   │   └── voice_agent.py
+│   ├── main.py
+│   ├── modules
+│   │   ├── __init__.py
+│   │   ├── abstract_concept.py
+│   │   ├── adv_context_manager.py
+│   │   ├── adv_input_processor.py
+│   │   ├── adv_knowledge_manager.py
+│   │   ├── adv_output_manager.py
+│   │   ├── adv_planning_engine.py
+│   │   ├── adv_reasoning_engine.py
+│   │   ├── agent_components.py
+│   │   ├── agent_tools.py
+│   │   ├── apply_analogy.py
+│   │   ├── arc_analyzer.py
+│   │   ├── assemble.py
+│   │   ├── banner.py
+│   │   ├── base_agent.py
+│   │   ├── basic_commands.py
+│   │   ├── causal_reasoning.py
+│   │   ├── chunk_history.py
+│   │   ├── cognitive_biases.py
+│   │   ├── cognitive_engine.py
+│   │   ├── config_manager.py
+│   │   ├── context_management.py
+│   │   ├── custom_console.py
+│   │   ├── ddg_search.py
+│   │   ├── document_commands.py
+│   │   ├── errors.py
+│   │   ├── evaluate_ethical_implications.py
+│   │   ├── evaluate_reasoning_process.py
+│   │   ├── fabric_commands.py
+│   │   ├── file_utils.py
+│   │   ├── generate_counterfactuals.py
+│   │   ├── helper_analogy.py
+│   │   ├── helper_causal.py
+│   │   ├── helper_entity_extraction.py
+│   │   ├── helper_hypothesis.py
+│   │   ├── helper_logical.py
+│   │   ├── helper_pattern_identification.py
+│   │   ├── helper_probabilistic.py
+│   │   ├── helper_relationship_extraction.py
+│   │   ├── helper_statistics.py
+│   │   ├── helper_system_dynamics.py
+│   │   ├── hypothesis_testing.py
+│   │   ├── input.py
+│   │   ├── kb_graph copy 1.py
+│   │   ├── kb_graph copy.py
+│   │   ├── kb_graph.py
+│   │   ├── knowledge_extraction
+│   │   │   ├── __init__.py
+│   │   │   ├── entity_relationship_extractor.py
+│   │   │   ├── extraction_constants.py
+│   │   │   ├── json_response_parser.py
+│   │   │   ├── key_concept_extractor.py
+│   │   │   ├── main.py
+│   │   │   ├── named_entity_recognizer.py
+│   │   │   ├── query_topic_analyzer.py
+│   │   │   ├── tests
+│   │   │   │   ├── test_entity_relationship_extractor.py
+│   │   │   │   ├── test_extract_knowledge.py
+│   │   │   │   ├── test_key_concept_extractor.py
+│   │   │   │   ├── test_named_entity_recognizer.py
+│   │   │   │   ├── test_query_topic_analyzer.py
+│   │   │   │   └── test_text_sentiment_analyzer.py
+│   │   │   └── text_sentiment_analyzer.py
+│   │   ├── knowledge_extraction.py
+│   │   ├── knowledge_management copy.py
+│   │   ├── knowledge_management.py
+│   │   ├── logging_setup.py
+│   │   ├── logic_steps.py
+│   │   ├── make_decision.py
+│   │   ├── memory_commands.py
+│   │   ├── memory_search.py
+│   │   ├── meta_processes.py
+│   │   ├── ollama_client.py
+│   │   ├── perform_abductive_reasoning.py
+│   │   ├── perform_deductive_reasoning.py
+│   │   ├── perform_inductive_reasoning.py
+│   │   ├── query_processing.py
+│   │   ├── research_tools.py
+│   │   ├── save_history.py
+│   │   ├── slash_commands.py
+│   │   ├── test.py
+│   │   ├── voice_assist.py
+│   │   └── voice_assist1.py
+│   ├── test_arc_biases.py
+│   ├── tests
+│   │   ├── test_abstract_concept.py
+│   │   ├── test_apply_analogy.py
+│   │   ├── test_assistant_commands.py
+│   │   ├── test_basic_commands.py
+│   │   ├── test_evaluate_ethical_implications.py
+│   │   ├── test_evaluate_reasoning_process.py
+│   │   ├── test_file_utils.py
+│   │   ├── test_generate_counterfactuals.py
+│   │   ├── test_helper_analogy.py
+│   │   ├── test_helper_causal.py
+│   │   ├── test_helper_entity_extraction.py
+│   │   ├── test_helper_hypothesis.py
+│   │   ├── test_helper_logical.py
+│   │   ├── test_helper_pattern_identification.py
+│   │   ├── test_helper_probabilistic.py
+│   │   ├── test_helper_relationship_extraction.py
+│   │   ├── test_helper_statistics.py
+│   │   ├── test_helper_system_dynamics.py
+│   │   ├── test_input.py
+│   │   ├── test_kb_graph.py
+│   │   ├── test_knowledge_extraction.py
+│   │   ├── test_knowledge_management.py
+│   │   ├── test_main_loop.py
+│   │   ├── test_make_decision.py
+│   │   ├── test_memory_components.py
+│   │   ├── test_memory_integration.py
+│   │   ├── test_memory_search.py
+│   │   ├── test_ollama_client.py
+│   │   ├── test_perform_abductive_reasoning.py
+│   │   ├── test_perform_deductive_reasoning.py
+│   │   ├── test_perform_inductive_reasoning.py
+│   │   ├── test_save_history.py
+│   │   └── test_voice_assist.py
+│   └── utils
+│       ├── initialize_db copy.py
+│       ├── initialize_db.py
+│       ├── migrate_to_edge.py
+│       ├── schema copy.py
+│       ├── schema.py
+│       ├── test_edge_migration.py
+│       └── verify_db_setup.py
+├── system_visualization.png
+└── test_agent.py
+
+16 directories, 482 files

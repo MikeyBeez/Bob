@@ -799,3 +799,21 @@ class DatabaseCore:
 
 # Import for datetime usage
 from datetime import timedelta
+
+
+# ================================================
+# FACTORY FUNCTION
+# ================================================
+
+def create_database_core(db_path: str, **kwargs) -> DatabaseCore:
+    """
+    Factory function to create a DatabaseCore instance.
+    
+    Args:
+        db_path: Path to the SQLite database file
+        **kwargs: Additional configuration options
+        
+    Returns:
+        Configured DatabaseCore instance
+    """
+    return DatabaseCore(db_path=db_path, **kwargs)

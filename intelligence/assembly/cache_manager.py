@@ -1,0 +1,422 @@
+"""
+cache_manager.py - Context caching and optimization module
+
+Handles intelligent caching of context assembly results
+to improve performance and reduce redundant computations.
+Clean API with TTL, invalidation, and cache optimization.
+"""
+
+from typing import Any, Dict, List, Optional, Tuple, Set
+from datetime import datetime, timedelta
+import json
+import hashlib
+from dataclasses import dataclass, asdict
+from enum import Enum
+import weakref
+
+
+class CacheStrategy(Enum):
+    """Cache eviction strategies."""
+    LRU = "lru"          # Least Recently Used
+    LFU = "lfu"          # Least Frequently Used
+    TTL = "ttl"          # Time To Live only
+    HYBRID = "hybrid"    # Combination of LRU and TTL
+
+
+@dataclass
+class CacheEntry:
+    """Represents a cache entry with metadata."""
+    key: str
+    value: Any
+    created_at: datetime
+    last_accessed: datetime
+    access_count: int
+    ttl_seconds: int
+    size_estimate: int
+    tags: Set[str]
+    
+    @property
+    def is_expired(self) -> bool:
+        """Check if entry has expired."""
+        if self.ttl_seconds <= 0:
+            return False
+        return datetime.now() > self.created_at + timedelta(seconds=self.ttl_seconds)
+    
+    @property
+    def age_seconds(self) -> int:
+        """Get entry age in seconds."""
+        return int((datetime.now() - self.created_at).total_seconds())
+    
+    def touch(self):
+        """Mark entry as recently accessed."""
+        self.last_accessed = datetime.now()
+        self.access_count += 1
+
+
+class CacheManager:
+    """
+    Intelligent caching system for context assembly.
+    
+    Public API for caching context results with multiple
+    eviction strategies and intelligent invalidation.
+    """
+    
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        self.config = config or {}
+        
+        # Cache configuration
+        self.max_entries = self.config.get('max_entries', 1000)
+        self.max_memory_mb = self.config.get('max_memory_mb', 100)
+        self.default_ttl = self.config.get('default_ttl_seconds', 3600)  # 1 hour
+        self.strategy = CacheStrategy(self.config.get('strategy', 'hybrid'))
+        
+        # Cache storage
+        self.entries: Dict[str, CacheEntry] = {}
+        self.tag_index: Dict[str, Set[str]] = {}  # tag -> set of cache keys
+        
+        # Metrics
+        self._metrics = {
+            'hits': 0,
+            'misses': 0,
+            'evictions': 0,
+            'invalidations': 0,
+            'memory_usage_mb': 0,
+            'entries_count': 0
+        }
+    
+    def get(self, key: str, default: Any = None) -> Any:
+        """
+        Retrieve value from cache.
+        
+        Args:
+            key: Cache key
+            default: Default value if not found
+            
+        Returns:
+            Cached value or default
+        """
+        if key not in self.entries:
+            self._metrics['misses'] += 1
+            return default
+        
+        entry = self.entries[key]
+        
+        # Check if expired
+        if entry.is_expired:
+            self.invalidate(key)
+            self._metrics['misses'] += 1
+            return default
+        
+        # Update access info
+        entry.touch()
+        self._metrics['hits'] += 1
+        
+        return entry.value
+    
+    def put(self, key: str, value: Any, ttl_seconds: Optional[int] = None, 
+           tags: Optional[Set[str]] = None) -> bool:
+        """
+        Store value in cache.
+        
+        Args:
+            key: Cache key
+            value: Value to cache
+            ttl_seconds: Time to live (None = default)
+            tags: Tags for grouping and invalidation
+            
+        Returns:
+            True if stored successfully
+        """
+        ttl = ttl_seconds or self.default_ttl
+        tags = tags or set()
+        
+        # Estimate size (rough)
+        size_estimate = self._estimate_size(value)
+        
+        # Check if we need to evict entries
+        if not self._ensure_space(size_estimate):
+            return False
+        
+        # Remove existing entry if present
+        if key in self.entries:
+            self._remove_entry(key)
+        
+        # Create new entry
+        entry = CacheEntry(
+            key=key,
+            value=value,
+            created_at=datetime.now(),
+            last_accessed=datetime.now(),
+            access_count=1,
+            ttl_seconds=ttl,
+            size_estimate=size_estimate,
+            tags=tags
+        )
+        
+        # Store entry
+        self.entries[key] = entry
+        
+        # Update tag index
+        for tag in tags:
+            if tag not in self.tag_index:
+                self.tag_index[tag] = set()
+            self.tag_index[tag].add(key)
+        
+        # Update metrics
+        self._update_metrics()
+        
+        return True
+    
+    def invalidate(self, key: str) -> bool:
+        """
+        Remove specific entry from cache.
+        
+        Args:
+            key: Cache key to remove
+            
+        Returns:
+            True if entry was removed
+        """
+        if key in self.entries:
+            self._remove_entry(key)
+            self._metrics['invalidations'] += 1
+            self._update_metrics()
+            return True
+        return False
+    
+    def invalidate_by_tag(self, tag: str) -> int:
+        """
+        Remove all entries with specified tag.
+        
+        Args:
+            tag: Tag to match
+            
+        Returns:
+            Number of entries removed
+        """
+        if tag not in self.tag_index:
+            return 0
+        
+        keys_to_remove = list(self.tag_index[tag])
+        count = 0
+        
+        for key in keys_to_remove:
+            if self.invalidate(key):
+                count += 1
+        
+        return count
+    
+    def generate_key(self, query: str, context_config: Dict[str, Any]) -> str:
+        """
+        Generate cache key from query and configuration.
+        
+        Args:
+            query: Context query
+            context_config: Configuration parameters
+            
+        Returns:
+            Unique cache key
+        """
+        # Create deterministic key from query and config
+        key_data = {
+            'query': query.strip().lower(),
+            'config': sorted(context_config.items()) if context_config else []
+        }
+        
+        key_str = json.dumps(key_data, sort_keys=True)
+        key_hash = hashlib.sha256(key_str.encode()).hexdigest()[:16]
+        
+        return f"context_{key_hash}"
+    
+    def _estimate_size(self, value: Any) -> int:
+        """Estimate memory size of value in bytes."""
+        if isinstance(value, str):
+            return len(value.encode('utf-8'))
+        elif isinstance(value, (int, float)):
+            return 8
+        elif isinstance(value, dict):
+            return sum(self._estimate_size(k) + self._estimate_size(v) 
+                      for k, v in value.items())
+        elif isinstance(value, (list, tuple)):
+            return sum(self._estimate_size(item) for item in value)
+        else:
+            # Rough estimate for other types
+            return len(str(value)) * 2
+    
+    def _remove_entry(self, key: str):
+        """Remove entry and update indexes."""
+        if key not in self.entries:
+            return
+        
+        entry = self.entries[key]
+        
+        # Remove from tag indexes
+        for tag in entry.tags:
+            if tag in self.tag_index:
+                self.tag_index[tag].discard(key)
+                if not self.tag_index[tag]:
+                    del self.tag_index[tag]
+        
+        # Remove entry
+        del self.entries[key]
+    
+    def _ensure_space(self, size_needed: int) -> bool:
+        """Ensure cache has space for new entry."""
+        # Check entry count limit
+        if len(self.entries) >= self.max_entries:
+            if not self._evict_entries(1):
+                return False
+        
+        # Check memory limit (rough estimate)
+        current_memory = sum(entry.size_estimate for entry in self.entries.values())
+        max_memory_bytes = self.max_memory_mb * 1024 * 1024
+        
+        if current_memory + size_needed > max_memory_bytes:
+            # Try to free up space
+            target_to_free = (current_memory + size_needed) - max_memory_bytes
+            if not self._evict_by_size(target_to_free):
+                return False
+        
+        return True
+    
+    def _evict_entries(self, count: int) -> bool:
+        """Evict entries based on current strategy."""
+        if self.strategy == CacheStrategy.LRU:
+            return self._evict_lru_entries(count)
+        elif self.strategy == CacheStrategy.LFU:
+            return self._evict_lfu_entries(count)
+        elif self.strategy == CacheStrategy.TTL:
+            return self._evict_expired_entries()
+        else:  # HYBRID
+            # First try expired, then LRU
+            self._evict_expired_entries()
+            return self._evict_lru_entries(count)
+    
+    def _evict_lru_entries(self, count: int) -> bool:
+        """Evict least recently used entries."""
+        if not self.entries:
+            return False
+        
+        # Sort by last_accessed (oldest first)
+        sorted_entries = sorted(
+            self.entries.items(),
+            key=lambda x: x[1].last_accessed
+        )
+        
+        evicted = 0
+        for key, entry in sorted_entries:
+            if evicted >= count:
+                break
+            self._remove_entry(key)
+            evicted += 1
+        
+        self._metrics['evictions'] += evicted
+        return evicted > 0
+    
+    def _evict_lfu_entries(self, count: int) -> bool:
+        """Evict least frequently used entries."""
+        if not self.entries:
+            return False
+        
+        # Sort by access_count (lowest first)
+        sorted_entries = sorted(
+            self.entries.items(),
+            key=lambda x: x[1].access_count
+        )
+        
+        evicted = 0
+        for key, entry in sorted_entries:
+            if evicted >= count:
+                break
+            self._remove_entry(key)
+            evicted += 1
+        
+        self._metrics['evictions'] += evicted
+        return evicted > 0
+    
+    def _evict_expired_entries(self) -> bool:
+        """Remove all expired entries."""
+        expired_keys = [key for key, entry in self.entries.items() if entry.is_expired]
+        
+        for key in expired_keys:
+            self._remove_entry(key)
+        
+        evicted = len(expired_keys)
+        self._metrics['evictions'] += evicted
+        return evicted > 0
+    
+    def _evict_by_size(self, target_bytes: int) -> bool:
+        """Evict entries to free up target bytes."""
+        # Sort by size (largest first) and age (oldest first)
+        sorted_entries = sorted(
+            self.entries.items(),
+            key=lambda x: (x[1].size_estimate, x[1].age_seconds),
+            reverse=True
+        )
+        
+        freed_bytes = 0
+        evicted = 0
+        
+        for key, entry in sorted_entries:
+            if freed_bytes >= target_bytes:
+                break
+            
+            freed_bytes += entry.size_estimate
+            self._remove_entry(key)
+            evicted += 1
+        
+        self._metrics['evictions'] += evicted
+        return freed_bytes >= target_bytes
+    
+    def _update_metrics(self):
+        """Update cache metrics."""
+        self._metrics['entries_count'] = len(self.entries)
+        self._metrics['memory_usage_mb'] = (
+            sum(entry.size_estimate for entry in self.entries.values()) / (1024 * 1024)
+        )
+    
+    def _get_oldest_entry_age(self) -> int:
+        """Get age of oldest entry in seconds."""
+        if not self.entries:
+            return 0
+        return max(entry.age_seconds for entry in self.entries.values())
+    
+    def _get_average_entry_size(self) -> float:
+        """Get average entry size in bytes."""
+        if not self.entries:
+            return 0.0
+        return sum(entry.size_estimate for entry in self.entries.values()) / len(self.entries)
+    
+    def get_metrics(self) -> Dict[str, Any]:
+        """Get cache performance metrics."""
+        total_requests = self._metrics['hits'] + self._metrics['misses']
+        hit_rate = self._metrics['hits'] / max(1, total_requests) * 100
+        
+        return {
+            **self._metrics,
+            'hit_rate_percent': hit_rate,
+            'oldest_entry_age_seconds': self._get_oldest_entry_age(),
+            'average_entry_size_bytes': self._get_average_entry_size(),
+            'tags_count': len(self.tag_index)
+        }
+    
+    def invalidate_expired(self) -> int:
+        """Remove expired entries and return count removed."""
+        expired_keys = []
+        for key, entry in self.entries.items():
+            if entry.is_expired:
+                expired_keys.append(key)
+        
+        for key in expired_keys:
+            self._remove_entry(key)
+        
+        self._metrics['evictions'] += len(expired_keys)
+        return len(expired_keys)
+    
+    def clear(self) -> int:
+        """Clear all cache entries and return count cleared."""
+        count = len(self.entries)
+        self.entries.clear()
+        self.tag_index.clear()
+        self._metrics['evictions'] += count
+        return count
