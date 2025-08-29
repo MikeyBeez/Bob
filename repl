@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Bob Brain REPL Launcher
+# Quick launcher for Bob's interactive brain system
+
+echo "🚀 Starting Bob Brain REPL..."
+echo "🧠 Interactive access to 72 tools and 54+ protocols"
+echo ""
+
+cd ~/Bob
+node bob_brain_repl.js
