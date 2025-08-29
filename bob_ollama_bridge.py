@@ -107,6 +107,17 @@ class BrainSystemFunctionBridge:
                 },
                 "category": "core"
             },
+            "brain_remember": {
+                "description": "Store information in brain memory system",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "content": {"type": "string", "description": "Information to store in memory"}
+                    },
+                    "required": ["content"]
+                },
+                "category": "core"
+            },
             "filesystem_read": {
                 "description": "Read file contents",
                 "parameters": {
@@ -339,6 +350,16 @@ class BrainSystemFunctionBridge:
                     "count": 1,
                     "relevance": 0.85,
                     "query": query
+                }
+            elif tool_name == "brain_remember":
+                content = parameters.get("content", "")
+                # Store the memory (in a real implementation this would go to a database)
+                return {
+                    "stored": True,
+                    "content": content,
+                    "memory_id": f"mem_{hash(content) % 10000}",
+                    "category": "user_preference",
+                    "timestamp": "2025-08-29T15:30:00Z"
                 }
             elif tool_name == "filesystem_read":
                 path = parameters.get("path", "")
@@ -610,15 +631,19 @@ IMPORTANT TOOL USAGE RULES:
 1. When users ask you to "test your tools", "test tools", "check your tools", "verify tools", or "run tests", respond with exactly: "TOOL_TEST_REQUEST"
 2. For brain status requests, use: {{"tool_call": true, "tool_name": "brain_status", "parameters": {{}}}}
 3. For protocol questions, use: {{"tool_call": true, "tool_name": "protocol_list", "parameters": {{}}}}
-4. For file reading, use: {{"tool_call": true, "tool_name": "filesystem_read", "parameters": {{"path": "file_path"}}}}
-5. For git status, use: {{"tool_call": true, "tool_name": "git_status", "parameters": {{"path": "repo_path"}}}}
-6. For bullshit detection, use: {{"tool_call": true, "tool_name": "detect_bullshit", "parameters": {{"text": "text_to_analyze"}}}}
-7. For project finding, use: {{"tool_call": true, "tool_name": "find_project", "parameters": {{"name": "project_name"}}}}
-8. For cognitive processing, use: {{"tool_call": true, "tool_name": "cognitive_process", "parameters": {{"content": "content_to_process", "mode": "analysis"}}}}
+4. For memory storage, use: {{"tool_call": true, "tool_name": "brain_remember", "parameters": {{"content": "information_to_store"}}}}
+5. For memory recall, use: {{"tool_call": true, "tool_name": "brain_recall", "parameters": {{"query": "search_query"}}}}
+6. For file reading, use: {{"tool_call": true, "tool_name": "filesystem_read", "parameters": {{"path": "file_path"}}}}
+7. For git status, use: {{"tool_call": true, "tool_name": "git_status", "parameters": {{"path": "repo_path"}}}}
+8. For bullshit detection, use: {{"tool_call": true, "tool_name": "detect_bullshit", "parameters": {{"text": "text_to_analyze"}}}}
+9. For project finding, use: {{"tool_call": true, "tool_name": "find_project", "parameters": {{"name": "project_name"}}}}
+10. For cognitive processing, use: {{"tool_call": true, "tool_name": "cognitive_process", "parameters": {{"content": "content_to_process", "mode": "analysis"}}}}
 
 EXAMPLES:
 - User asks "What's my system status?" → {{"tool_call": true, "tool_name": "brain_status", "parameters": {{}}}}
 - User asks "What protocols do you have?" → {{"tool_call": true, "tool_name": "protocol_list", "parameters": {{}}}}
+- User says "Remember that I like Python programming" → {{"tool_call": true, "tool_name": "brain_remember", "parameters": {{"content": "User likes Python programming"}}}}
+- User asks "What do you remember about me?" → {{"tool_call": true, "tool_name": "brain_recall", "parameters": {{"query": "user preferences"}}}}
 - User asks "Can you read this file: /path/to/file" → {{"tool_call": true, "tool_name": "filesystem_read", "parameters": {{"path": "/path/to/file"}}}}
 - User asks "Analyze this text for BS: some text" → {{"tool_call": true, "tool_name": "detect_bullshit", "parameters": {{"text": "some text"}}}}
 
@@ -1020,6 +1045,8 @@ IMPORTANT TOOL USAGE RULES:
 1. When users ask you to "test your tools", "test tools", "check your tools", "verify tools", or "run tests", respond with exactly: "TOOL_TEST_REQUEST"
 2. For brain status requests, use: {{"tool_call": true, "tool_name": "brain_status", "parameters": {{}}}}
 4. For file reading, use: {{"tool_call": true, "tool_name": "filesystem_read", "parameters": {{"path": "file_path"}}}}
+3. For memory storage, use: {{"tool_call": true, "tool_name": "brain_remember", "parameters": {{"content": "information_to_store"}}}}
+4. For memory recall, use: {{"tool_call": true, "tool_name": "brain_recall", "parameters": {{"query": "search_query"}}}}
 3. For protocol questions, use: {{"tool_call": true, "tool_name": "protocol_list", "parameters": {{}}}}
 5. For git status, use: {{"tool_call": true, "tool_name": "git_status", "parameters": {{"path": "repo_path"}}}}
 6. For bullshit detection, use: {{"tool_call": true, "tool_name": "detect_bullshit", "parameters": {{"text": "text_to_analyze"}}}}

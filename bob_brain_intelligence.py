@@ -223,6 +223,34 @@ class BobBrainIntelligence:
                     "priority": "high"
                 })
         
+        # Memory requests
+        elif primary_intent == "memory":
+            # Handle recall/remember questions first (more specific)
+            if any(term in user_message.lower() for term in ["what do you remember", "do you remember", "recall", "what did i"]):
+                # Extract the query from the message
+                query = user_message
+                if "remember" in user_message.lower():
+                    # Try to extract what they want to remember about
+                    parts = user_message.lower().split("remember")
+                    if len(parts) > 1:
+                        query = parts[1].strip()
+                
+                tool_sequence.append({
+                    "tool_name": "brain_recall",
+                    "parameters": {"query": query},
+                    "reasoning": "User requesting memory recall",
+                    "priority": "high"
+                })
+            
+            # Handle remember/store requests (storing new info)
+            elif any(term in user_message.lower() for term in ["remember that", "store", "save"]) or user_message.lower().startswith("remember"):
+                tool_sequence.append({
+                    "tool_name": "brain_remember",
+                    "parameters": {"content": user_message},
+                    "reasoning": "User wants to store information in memory",
+                    "priority": "high"
+                })
+
         # Development context
         elif primary_intent == "development":
             # Handle git-specific requests with high priority
