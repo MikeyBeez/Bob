@@ -5,7 +5,6 @@ from typing import Dict, Any, List
 
 from tools.non_blocking_git_push import non_blocking_git_push
 
-
 logger = logging.getLogger(__name__)
 
 class KnowledgeManager:
