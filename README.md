@@ -37,6 +37,18 @@ Bob/
 
 ## Getting Started
 
+### Branching Strategy
+
+It is recommended to work from the `main` branch as it represents the most stable version of the application. Feature development and bug fixes are done on separate branches and merged into `main` upon completion.
+
+To ensure you are on the `main` branch, you can run:
+```bash
+git checkout main
+git pull origin main
+```
+
+### Setup and Execution
+
 ```bash
 # Setup development environment with UV
 uv venv
