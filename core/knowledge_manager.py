@@ -1,7 +1,6 @@
 import logging
 import asyncio
 import os
-import time
 from typing import Dict, Any, List
 
 from tools.non_blocking_git_push import non_blocking_git_push
@@ -53,10 +52,7 @@ class KnowledgeManager:
         await self.run_git_command(repo_path, ["git", "commit", "-m", commit_message])
 
         # 4. Push the change using the non-blocking tool
-        start_time = time.monotonic()
         success = await non_blocking_git_push(repo_path, remote, branch)
-        duration = time.monotonic() - start_time
-        logger.info(f"Operation 'non_blocking_git_push' took {duration:.4f} seconds.")
 
         if success:
             logger.info("Successfully stored and pushed thought.")
@@ -71,15 +67,12 @@ class KnowledgeManager:
             # a bit of a hack to avoid modifying the list in place multiple times
             cmd = command[:1] + ["-C", repo_path] + command[1:]
 
-        start_time = time.monotonic()
         process = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
         stdout, stderr = await process.communicate()
-        duration = time.monotonic() - start_time
-        logger.info(f"Operation '{" ".join(cmd)}' took {duration:.4f} seconds.")
 
         # git commit can return 1 if there's nothing to commit, which is not an error for us.
         if process.returncode != 0:
