@@ -8,8 +8,12 @@ understand context, and provide sophisticated responses like brain_init_v5_worki
 
 import json
 import re
+import uuid
+from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
+
+from bob_memory_protocol import BobMemoryUsageProtocol
 
 class BobBrainIntelligence:
     """
@@ -36,7 +40,7 @@ class BobBrainIntelligence:
             "testing": {
                 "patterns": [r"test", r"check.*tools", r"verify", r"validate", r"run tests"],
                 "confidence_boost": 0.9,
-                "preferred_tools": ["brain_status", "git_status", "detect_bullshit"],
+                "preferred_tools": ["brain_recall", "git_status", "detect_bullshit"],
                 "context_hints": ["system health", "validation", "quality assurance"]
             },
             "development": {
@@ -54,7 +58,7 @@ class BobBrainIntelligence:
             "system": {
                 "patterns": [r"brain.*status", r"system.*status", r"health", r"system.*health", r"info", r"information", r"brain.*info"],
                 "confidence_boost": 0.9,
-                "preferred_tools": ["brain_status", "filesystem_read"],
+                "preferred_tools": ["brain_recall", "filesystem_read"],
                 "context_hints": ["system administration", "monitoring", "diagnostics"]
             },
             "file_operations": {
@@ -64,9 +68,9 @@ class BobBrainIntelligence:
                 "context_hints": ["file management", "content access", "navigation"]
             },
             "memory": {
-                "patterns": [r"remember", r"recall", r"memor", r"store", r"forget"],
-                "confidence_boost": 0.8,
-                "preferred_tools": ["brain_recall", "store_memory"],
+                "patterns": [r"remember", r"recall", r"memor", r"store", r"forget", r"what do you know", r"tell me about"],
+                "confidence_boost": 1.2,
+                "preferred_tools": ["brain_recall", "brain_remember"],
                 "context_hints": ["memory management", "information storage", "recall"]
             },
             "protocol": {
@@ -78,7 +82,7 @@ class BobBrainIntelligence:
             "conversation": {
                 "patterns": [r"hello", r"hi\b", r"help\b", r"what can you do", r"capabilities"],
                 "confidence_boost": 0.5,  # Lower boost for conversation
-                "preferred_tools": ["brain_status"],
+                "preferred_tools": ["brain_recall"],
                 "context_hints": ["general conversation", "introduction", "help"]
             }
         }
@@ -116,7 +120,7 @@ class BobBrainIntelligence:
         if not intent_scores:
             primary_intent = "conversation"
             confidence = 0.3
-            suggested_tools = ["brain_status"]
+            suggested_tools = ["brain_recall"]
         else:
             primary_intent = max(intent_scores.keys(), key=lambda k: intent_scores[k]["score"])
             confidence = intent_scores[primary_intent]["score"]
@@ -167,9 +171,9 @@ class BobBrainIntelligence:
         # System status requests
         if primary_intent == "system":
             tool_sequence.append({
-                "tool_name": "brain_status",
-                "parameters": {},
-                "reasoning": f"User asking about system status (confidence: {confidence:.2f})",
+                "tool_name": "brain_recall",
+                "parameters": {"query": "system status"},
+                "reasoning": f"User asking about Bob's system status (confidence: {confidence:.2f})",
                 "priority": "high"
             })
         
@@ -226,7 +230,7 @@ class BobBrainIntelligence:
         # Memory requests
         elif primary_intent == "memory":
             # Handle recall/remember questions first (more specific)
-            if any(term in user_message.lower() for term in ["what do you remember", "do you remember", "what memories", "recall", "what did i"]):
+            if any(term in user_message.lower() for term in ["what do you remember", "do you remember", "what memories", "memories", "recall", "what did i", "what do you know"]):
                 # Extract the query from the message
                 query = user_message
                 if "remember" in user_message.lower():
@@ -238,16 +242,25 @@ class BobBrainIntelligence:
                 tool_sequence.append({
                     "tool_name": "brain_recall",
                     "parameters": {"query": query},
-                    "reasoning": "User requesting memory recall",
+                    "reasoning": "User requesting memory recall from Bob's database",
                     "priority": "high"
                 })
             
             # Handle remember/store requests (storing new info)
             elif any(term in user_message.lower() for term in ["remember that", "store", "save"]) or user_message.lower().startswith("remember"):
+                # Extract what to remember
+                content_to_store = user_message
+                if user_message.lower().startswith("remember that "):
+                    content_to_store = user_message[13:].strip()  # Remove "remember that "
+                elif user_message.lower().startswith("remember "):
+                    content_to_store = user_message[9:].strip()  # Remove "remember "
+                
+                memory_id = f"bob-mem-{uuid.uuid4().hex[:8]}"
+                
                 tool_sequence.append({
                     "tool_name": "brain_remember",
-                    "parameters": {"content": user_message},
-                    "reasoning": "User wants to store information in memory",
+                    "parameters": {"content": content_to_store},
+                    "reasoning": "User wants to store information in Bob's memory database",
                     "priority": "high"
                 })
 

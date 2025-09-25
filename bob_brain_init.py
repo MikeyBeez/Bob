@@ -75,6 +75,15 @@ class BobBrainInit:
             "version": "1.0.0",
             "timestamp": start_time.isoformat(),
             
+            "database_system": {
+                "primary_database": str(Path(__file__).parent / "data" / "bob.db"),
+                "knowledge_database": str(Path(__file__).parent / "data" / "edgebase" / "knowledge_edges.db"),
+                "database_status": self._check_database_status(),
+                "available_tables": self._get_database_tables(),
+                "memory_system": "SQLite database with memories table",
+                "backup_memory": str(Path.home() / ".bob_memories.json")
+            },
+            
             "protocol_system": {
                 "master_index_loaded": bool(protocol_context),
                 "total_protocols": 5,
@@ -137,6 +146,62 @@ class BobBrainInit:
             "information-integration",
             "progress-communication"
         ]
+    
+    def _check_database_status(self) -> dict:
+        """Check the status of Bob's database systems."""
+        try:
+            import sqlite3
+            
+            # Check primary database
+            primary_db = Path(__file__).parent / "data" / "bob.db"
+            primary_status = "available" if primary_db.exists() else "missing"
+            
+            # Check knowledge database  
+            knowledge_db = Path(__file__).parent / "data" / "edgebase" / "knowledge_edges.db"
+            knowledge_status = "available" if knowledge_db.exists() else "missing"
+            
+            # Test database connection
+            primary_connection = "ok"
+            memory_count = 0
+            if primary_db.exists():
+                try:
+                    conn = sqlite3.connect(str(primary_db))
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT COUNT(*) FROM memories")
+                    memory_count = cursor.fetchone()[0]
+                    conn.close()
+                except Exception as e:
+                    primary_connection = f"error: {str(e)}"
+            
+            return {
+                "primary_db_status": primary_status,
+                "knowledge_db_status": knowledge_status, 
+                "primary_connection": primary_connection,
+                "stored_memories": memory_count,
+                "database_engine": "SQLite"
+            }
+        except ImportError:
+            return {"error": "sqlite3 not available"}
+        except Exception as e:
+            return {"error": str(e)}
+    
+    def _get_database_tables(self) -> list:
+        """Get list of available database tables."""
+        try:
+            import sqlite3
+            primary_db = Path(__file__).parent / "data" / "bob.db"
+            
+            if not primary_db.exists():
+                return []
+            
+            conn = sqlite3.connect(str(primary_db))
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = [row[0] for row in cursor.fetchall()]
+            conn.close()
+            return tables
+        except Exception:
+            return []
     
     def _generate_protocol_guidance(self, intent_analysis: dict, user_message: str) -> dict:
         """Generate specific protocol guidance for the current request."""

@@ -8,6 +8,7 @@ It registers all 72 brain tools as Ollama functions and handles seamless executi
 import asyncio
 import json
 import logging
+import sqlite3
 import aiohttp
 from rich.console import Console
 from rich.live import Live
@@ -19,6 +20,9 @@ from pathlib import Path
 
 from core.ollama_client import OllamaClient
 from bob_brain_intelligence import BobBrainIntelligence
+from bob_semantic_memory import BobSemanticMemoryProcessor
+from bob_memory_validator import BobMemoryValidator
+from bob_memory_intelligence import BobMemoryIntelligence  # New simple memory intelligence
 
 class BrainSystemFunctionBridge:
     """
@@ -69,7 +73,16 @@ class BrainSystemFunctionBridge:
         # Initialize intelligence system with tools
         self.intelligence = BobBrainIntelligence(self.brain_tools)
         
-        logging.info(f"Initialized BrainSystemFunctionBridge with {len(self.brain_tools)} tools and intelligence system")
+        # Initialize NEW simple memory intelligence (no MCP needed)
+        self.memory_intelligence = BobMemoryIntelligence()
+        
+        # Initialize semantic memory processor
+        self.semantic_memory = BobSemanticMemoryProcessor(self.ollama)
+        
+        # Initialize memory validator
+        self.memory_validator = BobMemoryValidator()
+        
+        logging.info(f"Initialized BrainSystemFunctionBridge with {len(self.brain_tools)} tools, intelligence system, semantic memory processor, and memory validator")
     
     def _initialize_brain_system(self):
         """Initialize connection to brain system."""
@@ -346,86 +359,148 @@ class BrainSystemFunctionBridge:
             elif tool_name == "brain_recall":
                 query = parameters.get("query", "")
                 
-                # Load memories from persistent file
-                memory_file = Path.home() / '.bob_memories.json'
-                memories_data = {}
-                
-                if memory_file.exists():
-                    try:
-                        with open(memory_file, 'r') as f:
-                            memories_data = json.load(f)
-                    except (json.JSONDecodeError, IOError):
-                        memories_data = {}
-                
-                # Search through stored memories
-                if memories_data:
-                    found_memories = []
-                    for memory_id, memory_data in memories_data.items():
-                        # Simple text search in memory content
-                        if query.lower() in memory_data['content'].lower() or len(query) < 10:  # Show all memories for short/generic queries
-                            found_memories.append(memory_data['content'])
+                # Use semantic search for better memory retrieval
+                try:
+                    # Expand query using semantic processing
+                    expanded_query = await self.semantic_memory.expand_search_query(query)
                     
-                    if found_memories:
+                    db_path = Path(__file__).parent / "data" / "bob.db"
+                    conn = sqlite3.connect(str(db_path))
+                    conn.row_factory = sqlite3.Row  # Enable column access by name
+                    cursor = conn.cursor()
+                    
+                    # Generate semantic search SQL
+                    search_sql, search_params = self.semantic_memory.generate_search_sql(expanded_query)
+                    
+                    # Execute semantic search
+                    cursor.execute(search_sql, search_params)
+                    results = cursor.fetchall()
+                    conn.close()
+                    
+                    if results:
+                        # Extract memory details with metadata
+                        memories = []
+                        memory_details = []
+                        
+                        for row in results:
+                            memories.append(row['content'])
+                            
+                            # Parse context for metadata
+                            context = {}
+                            try:
+                                context = json.loads(row['context'] or '{}')
+                            except:
+                                pass
+                                
+                            memory_details.append({
+                                "content": row['content'],
+                                "memory_type": row['memory_type'],
+                                "created_at": row['created_at'],
+                                "entities": context.get('semantic_metadata', {}).get('entities', []),
+                                "topics": context.get('semantic_metadata', {}).get('topics', []),
+                                "user_related": context.get('semantic_metadata', {}).get('user_related', False)
+                            })
+                        
                         return {
-                            "memories": found_memories,
-                            "count": len(found_memories),
-                            "relevance": 0.95,  # High relevance for actual matches
-                            "query": query
+                            "memories": memories,
+                            "count": len(memories),
+                            "relevance": 0.95,
+                            "query": query,
+                            "expanded_query": expanded_query,
+                            "memory_details": memory_details,
+                            "source": "bob_database_semantic"
                         }
                     else:
                         return {
                             "memories": [],
                             "count": 0,
                             "relevance": 0.0,
-                            "query": query
+                            "query": query,
+                            "expanded_query": expanded_query,
+                            "note": "No matching memories found with semantic search.",
+                            "source": "bob_database_semantic"
                         }
-                else:
-                    # No memory file exists yet
+                        
+                except Exception as e:
                     return {
                         "memories": [],
                         "count": 0,
                         "relevance": 0.0,
                         "query": query,
-                        "note": "No memories have been stored yet."
+                        "error": f"Semantic search error: {str(e)}",
+                        "source": "bob_database_semantic"
                     }
             elif tool_name == "brain_remember":
                 content = parameters.get("content", "")
-                # Store the memory in persistent file storage
-                memory_file = Path.home() / '.bob_memories.json'
                 
-                # Load existing memories
-                memories = {}
-                if memory_file.exists():
-                    try:
-                        with open(memory_file, 'r') as f:
-                            memories = json.load(f)
-                    except (json.JSONDecodeError, IOError):
-                        memories = {}
+                # Validate memory content first
+                validation_result = self.memory_validator.validate_memory_content(content)
                 
-                memory_id = f"mem_{hash(content) % 10000}"
-                memories[memory_id] = {
-                    "content": content,
-                    "timestamp": "2025-08-29T15:30:00Z",
-                    "category": "user_preference"
-                }
-                
-                # Save memories to file
-                try:
-                    with open(memory_file, 'w') as f:
-                        json.dump(memories, f, indent=2)
-                except IOError as e:
+                if not validation_result["valid"]:
+                    # Memory needs clarification - return guidance instead of storing
                     return {
                         "stored": False,
-                        "error": f"Failed to save memory: {str(e)}"
+                        "needs_clarification": True,
+                        "clarification_message": validation_result["clarification_message"],
+                        "issue_type": validation_result["issue_type"],
+                        "examples": validation_result["examples"],
+                        "original_content": content,
+                        "source": "memory_validator"
                     }
                 
-                return {
-                    "stored": True,
-                    "content": content,
-                    "memory_id": memory_id,
-                    "category": "user_preference",
-                    "timestamp": "2025-08-29T15:30:00Z"
-                }
+                # Content is valid, proceed with semantic processing and storage
+                try:
+                    import uuid
+                    from datetime import datetime
+                    
+                    # Process memory with semantic analysis
+                    processed_memory = await self.semantic_memory.process_memory_for_storage(content)
+                    
+                    db_path = Path(__file__).parent / "data" / "bob.db"
+                    conn = sqlite3.connect(str(db_path))
+                    cursor = conn.cursor()
+                    
+                    memory_id = f"bob-mem-{uuid.uuid4().hex[:8]}"
+                    timestamp = datetime.now().isoformat()
+                    
+                    # Create enriched context with semantic metadata
+                    context_data = {
+                        "session": "bob_chat",
+                        "timestamp": timestamp,
+                        "semantic_metadata": processed_memory.get("semantic_metadata", {})
+                    }
+                    
+                    # Insert into Bob's memories table with semantic data
+                    cursor.execute(
+                        "INSERT INTO memories (id, content, source, memory_type, confidence, context) VALUES (?, ?, ?, ?, ?, ?)",
+                        (memory_id, processed_memory["content"], "user_input", processed_memory["memory_type"], 1.0, json.dumps(context_data))
+                    )
+                    
+                    conn.commit()
+                    conn.close()
+                    
+                    # Extract key info for response
+                    semantic_meta = processed_memory.get("semantic_metadata", {})
+                    
+                    return {
+                        "stored": True,
+                        "content": processed_memory["content"],
+                        "memory_id": memory_id,
+                        "category": processed_memory["memory_type"], 
+                        "timestamp": timestamp,
+                        "source": "bob_database",
+                        "entities": semantic_meta.get("entities", []),
+                        "topics": semantic_meta.get("topics", []),
+                        "user_related": semantic_meta.get("user_related", False)
+                    }
+                    
+                except Exception as e:
+                    return {
+                        "stored": False,
+                        "content": content,
+                        "error": f"Semantic processing error: {str(e)}",
+                        "source": "bob_database"
+                    }
             elif tool_name == "filesystem_read":
                 path = parameters.get("path", "")
                 try:
@@ -635,6 +710,36 @@ class BrainSystemFunctionBridge:
         try:
             # Add message to conversation history
             self.conversation_history.append({"role": "user", "content": message})
+            
+            # FIRST: Check for memory intelligence actions (no MCP needed!)
+            memory_analysis = self.memory_intelligence.analyze_user_input(message)
+            
+            if memory_analysis['action'] != 'none':
+                # Execute the memory action directly
+                memory_result = self.memory_intelligence.execute_memory_action(memory_analysis, self.brain_tools)
+                
+                if memory_analysis['action'] == 'clarify':
+                    # Return clarification message immediately
+                    clarification_response = f"🧠 Memory Intelligence: {memory_result['message']}"
+                    self.conversation_history.append({"role": "assistant", "content": clarification_response})
+                    return clarification_response
+                    
+                elif memory_analysis['action'] == 'store' and memory_result['success']:
+                    # Continue with normal processing but inform user what was stored
+                    store_msg = f"✓ {memory_result['message']}"
+                    self.console.print(store_msg, style="green bold")
+                    
+                elif memory_analysis['action'] == 'recall' and memory_result['success']:
+                    # Use recalled memories to enhance the response
+                    if memory_result.get('memories') and len(memory_result['memories']) > 0:
+                        recall_context = "\n\nRelevant memories found:\n" + "\n".join([f"- {mem}" for mem in memory_result['memories'][:3]])
+                        message += recall_context
+                        
+                elif memory_analysis['action'] == 'enhance' and memory_result['success']:
+                    # Use memories to personalize response
+                    if memory_result.get('relevant_memories'):
+                        enhance_context = "\n\nPersonalization context: " + str(memory_result['relevant_memories'])
+                        message += enhance_context
             
             # Use intelligence system to analyze intent and suggest strategy
             intent_analysis = self.intelligence.analyze_intent(message)
@@ -1057,7 +1162,9 @@ You can mention these capabilities when relevant, but respond naturally to conve
             return f"✅ **System Status Check Complete**\n\n• Status: {result['status']}\n• Tools: {result['tools_available']}\n• Protocols: {result['protocols_loaded']}\n• Model: {result['model']}\n• Uptime: {result['uptime']}"
         
         elif tool_name == "brain_remember":
-            if result.get('stored', False):
+            if result.get('needs_clarification', False):
+                return f"❓ **Memory Needs Clarification**\n\n{result.get('clarification_message', 'Please provide a clearer memory request.')}"
+            elif result.get('stored', False):
                 return f"✅ **Memory Stored Successfully**\n\n• Memory ID: {result.get('memory_id', 'unknown')}\n• Category: {result.get('category', 'general')}\n• Content: {result.get('content', '')[:100]}{'...' if len(result.get('content', '')) > 100 else ''}\n• Timestamp: {result.get('timestamp', 'unknown')}"
             else:
                 return f"❌ **Memory Storage Failed**\n\nError: {result.get('error', 'Unknown error')}"
